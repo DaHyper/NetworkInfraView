@@ -1,5 +1,9 @@
 /secret
 
+# App data (SQLite database)
+/data/*.db
+/data/*.sqlite
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

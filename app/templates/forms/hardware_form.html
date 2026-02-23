@@ -1,0 +1,102 @@
+<form method="post" id="modal-form">
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Site *</label>
+      <select class="form-control" name="site_id" required>
+        <option value="">— Select Site —</option>
+        {% for s in sites %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Device Type</label>
+      <select class="form-control" name="device_type">
+        <option value="server">Server</option>
+        <option value="switch">Switch</option>
+        <option value="router">Router</option>
+        <option value="nas">NAS</option>
+        <option value="ups">UPS</option>
+        <option value="pdu">PDU</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Name *</label>
+      <input class="form-control" type="text" name="name" required>
+    </div>
+    <div class="form-row">
+      <label>Role</label>
+      <input class="form-control" type="text" name="role" placeholder="e.g. Proxmox Node 1">
+    </div>
+  </div>
+  <div class="form-grid-3">
+    <div class="form-row">
+      <label>Mgmt IP</label>
+      <input class="form-control" type="text" name="ip_mgmt" placeholder="192.168.1.10">
+    </div>
+    <div class="form-row">
+      <label>CPU Cores</label>
+      <input class="form-control" type="number" name="cpu_cores" min="0">
+    </div>
+    <div class="form-row">
+      <label>RAM (GB)</label>
+      <input class="form-control" type="number" name="ram_gb" min="0">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Make / Model</label>
+      <input class="form-control" type="text" name="make_model" placeholder="e.g. Dell PowerEdge R720">
+    </div>
+    <div class="form-row">
+      <label>Rack Position</label>
+      <input class="form-control" type="text" name="rack_position" placeholder="e.g. Rack A, U12">
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Status</label>
+    <select class="form-control" name="status">
+      <option value="active">Active</option>
+      <option value="offline">Offline</option>
+      <option value="maintenance">Maintenance</option>
+    </select>
+  </div>
+  <div class="form-row" style="display:flex;align-items:center;gap:8px;">
+    <input type="checkbox" name="is_hypervisor" id="is_hyp" value="1" onchange="toggleHypervisorFields()">
+    <label for="is_hyp" style="text-transform:none;font-size:12px;font-weight:normal;cursor:pointer;">This device is a hypervisor (Proxmox, ESXi, etc.)</label>
+  </div>
+  <div id="hypervisor-fields" style="display:none;border:1px solid var(--border);border-radius:4px;padding:8px;margin-top:4px;">
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>Hypervisor Type</label>
+        <select class="form-control" name="hypervisor_type">
+          <option value="proxmox">Proxmox</option>
+          <option value="esxi">ESXi / vSphere</option>
+          <option value="kvm">KVM</option>
+          <option value="hyper-v">Hyper-V</option>
+          <option value="xen">Xen</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Cluster Name</label>
+        <input class="form-control" type="text" name="cluster_name" placeholder="e.g. px-cluster-01">
+      </div>
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Notes</label>
+    <textarea class="form-control" name="notes"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>
+<script>
+function toggleHypervisorFields() {
+  document.getElementById('hypervisor-fields').style.display =
+    document.getElementById('is_hyp').checked ? '' : 'none';
+}
+</script>

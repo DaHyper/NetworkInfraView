@@ -1,0 +1,37 @@
+<form method="post" id="modal-form">
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Site *</label>
+      <select class="form-control" name="site_id" required>
+        <option value="">— Select Site —</option>
+        {% for s in sites %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Name *</label>
+      <input class="form-control" type="text" name="name" required placeholder="e.g. KVM Switch">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Category</label>
+      <input class="form-control" type="text" name="category" placeholder="e.g. KVM, UPS, PDU, Print Server">
+    </div>
+    <div class="form-row">
+      <label>IP Address</label>
+      <input class="form-control" type="text" name="ip_address">
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Description</label>
+    <input class="form-control" type="text" name="description">
+  </div>
+  <div class="form-row">
+    <label>Notes</label>
+    <textarea class="form-control" name="notes"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>

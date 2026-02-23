@@ -1,0 +1,47 @@
+<form method="post" id="modal-form">
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Site *</label>
+      <select class="form-control" name="site_id" required>
+        <option value="">— Select Site —</option>
+        {% for s in sites %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Name *</label>
+      <input class="form-control" type="text" name="name" required placeholder="e.g. FW-Edge-01">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Public IP</label>
+      <input class="form-control" type="text" name="public_ip" placeholder="203.0.113.1">
+    </div>
+    <div class="form-row">
+      <label>Management IP</label>
+      <input class="form-control" type="text" name="management_ip" placeholder="10.0.0.1">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Make / Model</label>
+      <input class="form-control" type="text" name="model" placeholder="e.g. pfSense / Fortigate 60F">
+    </div>
+    <div class="form-row">
+      <label>Status</label>
+      <select class="form-control" name="status">
+        <option value="active">Active</option>
+        <option value="offline">Offline</option>
+        <option value="maintenance">Maintenance</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Notes</label>
+    <textarea class="form-control" name="notes"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>

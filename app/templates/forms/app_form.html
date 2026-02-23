@@ -1,0 +1,56 @@
+<form method="post" id="modal-form">
+  <div class="form-row">
+    <label>Name *</label>
+    <input class="form-control" type="text" name="name" required placeholder="e.g. Nginx, Wazuh Manager">
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Runs on VM</label>
+      <select class="form-control" name="vm_id">
+        <option value="">— None —</option>
+        {% for v in vms %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Runs on Hardware</label>
+      <select class="form-control" name="hardware_id">
+        <option value="">— None —</option>
+        {% for h in hardware_list %}<option value="{{ h.id }}">{{ h.name }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-grid-3">
+    <div class="form-row">
+      <label>Version</label>
+      <input class="form-control" type="text" name="version" placeholder="e.g. 4.9.1">
+    </div>
+    <div class="form-row">
+      <label>Port</label>
+      <input class="form-control" type="number" name="port" min="1" max="65535">
+    </div>
+    <div class="form-row">
+      <label>Protocol</label>
+      <select class="form-control" name="protocol">
+        <option value="tcp">TCP</option>
+        <option value="udp">UDP</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <label>URL</label>
+    <input class="form-control" type="text" name="url" placeholder="https://app.example.com">
+  </div>
+  <div class="form-row" style="display:flex;align-items:center;gap:8px;">
+    <input type="checkbox" name="public_exposed" id="app_pub" value="1">
+    <label for="app_pub" style="text-transform:none;font-size:12px;font-weight:normal;cursor:pointer;">Publicly exposed</label>
+  </div>
+  <div class="form-row">
+    <label>Notes</label>
+    <textarea class="form-control" name="notes"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>

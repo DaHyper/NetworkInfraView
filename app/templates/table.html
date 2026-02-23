@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — NetworkInfraView{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="openAddModal()">+ Add {{ entity | title }}</button>
+{% endblock %}
+
+{% block content %}
+<div class="table-card">
+  <div class="table-toolbar">
+    <input type="text" class="table-search" id="search-input" placeholder="Search {{ title | lower }}..." oninput="filterTable()">
+    <span class="text-muted text-small" id="row-count"></span>
+  </div>
+  <table id="main-table">
+    <thead>
+      <tr>
+        {% for col in columns %}
+        <th onclick="sortTable({{ loop.index0 }}, this)">{{ col }}</th>
+        {% endfor %}
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr data-id="{{ item.id }}">
+        {% set attrs = row_attrs(item) %}
+        {% for attr in attrs %}
+        <td>
+          {%- if attr in ["active","offline","maintenance"] -%}
+            <span class="badge badge-{{ attr }}">{{ attr }}</span>
+          {%- elif attr == "Yes" -%}
+            <span class="badge badge-yes">Yes</span>
+          {%- elif attr == "No" and columns[loop.index0] in ["Public", "Internet-Facing"] -%}
+            <span class="badge badge-no">No</span>
+          {%- elif blueprint == "networks" and columns[loop.index0] == "Color" and attr -%}
+            <span class="vlan-dot" style="background:{{ attr }};"></span>{{ attr }}
+          {%- else -%}
+            {{ attr }}
+          {%- endif -%}
+        </td>
+        {% endfor %}
+        <td class="td-actions">
+          <button class="btn btn-sm" onclick="openEditModal({{ item.id }}, '{{ url_for(blueprint + '.edit', id=item.id) }}')">Edit</button>
+          <form method="post" action="{{ url_for(blueprint + '.delete', id=item.id) }}" style="display:inline;" onsubmit="return confirm('Delete this {{ entity }}?')">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="{{ columns | length + 1 }}">No {{ title | lower }} yet. Click "+ Add" to create one.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Hidden form template for Add/Edit modals -->
+<div id="form-template" class="hidden">
+  {% if entity == "site" %}
+    {% include "forms/site_form.html" %}
+  {% elif entity == "isp" %}
+    {% include "forms/isp_form.html" %}
+  {% elif entity == "firewall" %}
+    {% include "forms/firewall_form.html" %}
+  {% elif entity == "app" %}
+    {% include "forms/app_form.html" %}
+  {% elif entity == "storage" %}
+    {% include "forms/storage_form.html" %}
+  {% elif entity == "network" %}
+    {% include "forms/network_form.html" %}
+  {% elif entity == "client" %}
+    {% include "forms/client_form.html" %}
+  {% elif entity == "misc" %}
+    {% include "forms/misc_form.html" %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ENTITY = "{{ entity }}";
+const BLUEPRINT = "{{ blueprint }}";
+const CREATE_URL = "{{ url_for(blueprint + '.create') }}";
+
+// Row count
+function updateCount() {
+  const rows = document.querySelectorAll('#main-table tbody tr:not(.empty-row):not([style*="none"])');
+  document.getElementById('row-count').textContent = rows.length + ' item' + (rows.length !== 1 ? 's' : '');
+}
+updateCount();
+
+// Search filter
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  document.querySelectorAll('#main-table tbody tr:not(.empty-row)').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+  updateCount();
+}
+
+// Sort
+let sortCol = -1, sortAsc = true;
+function sortTable(col, th) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  document.querySelectorAll('thead th').forEach(t => t.className = '');
+  th.className = sortAsc ? 'sorted-asc' : 'sorted-desc';
+
+  const tbody = document.querySelector('#main-table tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr:not(.empty-row)'));
+  rows.sort((a, b) => {
+    const av = a.cells[col]?.textContent.trim() || '';
+    const bv = b.cells[col]?.textContent.trim() || '';
+    const n = parseFloat(av) - parseFloat(bv);
+    if (!isNaN(n)) return sortAsc ? n : -n;
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function openAddModal() {
+  const tpl = document.getElementById('form-template');
+  openFormModal('Add ' + ENTITY.charAt(0).toUpperCase() + ENTITY.slice(1), tpl.innerHTML, CREATE_URL, null);
+}
+
+function openEditModal(id, editUrl) {
+  fetch(editUrl).then(r => r.json()).then(data => {
+    const tpl = document.getElementById('form-template');
+    openFormModal('Edit ' + ENTITY.charAt(0).toUpperCase() + ENTITY.slice(1), tpl.innerHTML, editUrl, data);
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,63 @@
+<form method="post" id="modal-form">
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Site *</label>
+      <select class="form-control" name="site_id" required>
+        <option value="">— Select Site —</option>
+        {% for s in sites %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Network / VLAN</label>
+      <select class="form-control" name="network_id">
+        <option value="">— None —</option>
+        {% for n in networks %}<option value="{{ n.id }}">{% if n.vlan_id %}VLAN {{ n.vlan_id }} — {% endif %}{{ n.name }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Name *</label>
+      <input class="form-control" type="text" name="name" required placeholder="e.g. Alice-Laptop">
+    </div>
+    <div class="form-row">
+      <label>Owner</label>
+      <input class="form-control" type="text" name="owner" placeholder="e.g. Alice Smith">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Device Type</label>
+      <select class="form-control" name="device_type">
+        <option value="laptop">Laptop</option>
+        <option value="desktop">Desktop</option>
+        <option value="phone">Phone / Tablet</option>
+        <option value="iot">IoT Device</option>
+        <option value="printer">Printer</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>OS</label>
+      <input class="form-control" type="text" name="os" placeholder="e.g. Windows 11">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>IP Address</label>
+      <input class="form-control" type="text" name="ip_address" placeholder="192.168.1.50">
+    </div>
+    <div class="form-row">
+      <label>MAC Address</label>
+      <input class="form-control" type="text" name="mac_address" placeholder="AA:BB:CC:DD:EE:FF">
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Notes</label>
+    <textarea class="form-control" name="notes"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>

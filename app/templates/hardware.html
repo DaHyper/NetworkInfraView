@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Hardware — NetworkInfraView{% endblock %}
+{% block page_title %}Hardware{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="openAddModal()">+ Add Hardware</button>
+{% endblock %}
+
+{% block content %}
+<div class="table-card">
+  <div class="table-toolbar">
+    <input type="text" class="table-search" id="search-input" placeholder="Search hardware..." oninput="filterTable()">
+    <span class="text-muted text-small" id="row-count"></span>
+  </div>
+  <table id="main-table">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0,this)">Site</th>
+        <th onclick="sortTable(1,this)">Name</th>
+        <th onclick="sortTable(2,this)">Type</th>
+        <th onclick="sortTable(3,this)">Role</th>
+        <th onclick="sortTable(4,this)">Mgmt IP</th>
+        <th onclick="sortTable(5,this)">CPU</th>
+        <th onclick="sortTable(6,this)">RAM</th>
+        <th onclick="sortTable(7,this)">Make/Model</th>
+        <th onclick="sortTable(8,this)">Hypervisor</th>
+        <th onclick="sortTable(9,this)">Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr data-id="{{ item.id }}">
+        <td>{{ item.site.name }}</td>
+        <td><strong>{{ item.name }}</strong></td>
+        <td>{{ item.device_type }}</td>
+        <td>{{ item.role or "" }}</td>
+        <td><code style="font-size:11px;">{{ item.ip_mgmt or "" }}</code></td>
+        <td>{{ (item.cpu_cores | string + 'c') if item.cpu_cores else "" }}</td>
+        <td>{{ (item.ram_gb | string + 'GB') if item.ram_gb else "" }}</td>
+        <td>{{ item.make_model or "" }}</td>
+        <td>{% if item.hypervisor %}<span class="badge badge-active">{{ item.hypervisor.hypervisor_type }}</span>{% endif %}</td>
+        <td><span class="badge badge-{{ item.status }}">{{ item.status }}</span></td>
+        <td class="td-actions">
+          <button class="btn btn-sm" onclick="openEditModal({{ item.id }}, '/hardware/{{ item.id }}/edit')">Edit</button>
+          <form method="post" action="/hardware/{{ item.id }}/delete" style="display:inline;" onsubmit="return confirm('Delete {{ item.name }}?')">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr class="empty-row"><td colspan="11">No hardware yet. Click "+ Add Hardware" to create one.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="form-template" class="hidden">
+  {% with sites=sites %}{% include "forms/hardware_form.html" %}{% endwith %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ENTITY = "hardware";
+const CREATE_URL = "/hardware/create";
+
+function updateCount() {
+  const rows = document.querySelectorAll('#main-table tbody tr:not(.empty-row):not([style*="none"])');
+  document.getElementById('row-count').textContent = rows.length + ' item' + (rows.length !== 1 ? 's' : '');
+}
+updateCount();
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  document.querySelectorAll('#main-table tbody tr:not(.empty-row)').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+  updateCount();
+}
+
+let sortCol = -1, sortAsc = true;
+function sortTable(col, th) {
+  if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+  document.querySelectorAll('thead th').forEach(t => t.className = '');
+  th.className = sortAsc ? 'sorted-asc' : 'sorted-desc';
+  const tbody = document.querySelector('#main-table tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr:not(.empty-row)'));
+  rows.sort((a, b) => {
+    const av = a.cells[col]?.textContent.trim() || '';
+    const bv = b.cells[col]?.textContent.trim() || '';
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function openAddModal() {
+  const tpl = document.getElementById('form-template');
+  openFormModal('Add Hardware', tpl.innerHTML, CREATE_URL, null);
+}
+function openEditModal(id, editUrl) {
+  fetch(editUrl).then(r => r.json()).then(data => {
+    const tpl = document.getElementById('form-template');
+    openFormModal('Edit Hardware', tpl.innerHTML, editUrl, data, true);
+  });
+}
+</script>
+{% endblock %}

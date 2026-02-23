@@ -1,0 +1,81 @@
+<form method="post" id="modal-form">
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Site *</label>
+      <select class="form-control" name="site_id" required>
+        <option value="">— Select Site —</option>
+        {% for s in sites %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Name *</label>
+      <input class="form-control" type="text" name="name" required>
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Hypervisor</label>
+      <select class="form-control" name="hypervisor_id">
+        <option value="">— None / Standalone —</option>
+        {% for h in hypervisors %}<option value="{{ h.id }}">{{ h.hardware.name }} ({{ h.hypervisor_type }})</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Network / VLAN</label>
+      <select class="form-control" name="network_id">
+        <option value="">— None —</option>
+        {% for n in networks %}<option value="{{ n.id }}" style="color:{{ n.color }}">{% if n.vlan_id %}VLAN {{ n.vlan_id }} — {% endif %}{{ n.name }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>OS</label>
+      <input class="form-control" type="text" name="os" placeholder="e.g. Ubuntu 22.04">
+    </div>
+    <div class="form-row">
+      <label>IP Address</label>
+      <input class="form-control" type="text" name="ip_address" placeholder="10.0.1.10">
+    </div>
+  </div>
+  <div class="form-grid-3">
+    <div class="form-row">
+      <label>CPU Cores</label>
+      <input class="form-control" type="number" name="cpu_cores" min="0">
+    </div>
+    <div class="form-row">
+      <label>RAM (GB)</label>
+      <input class="form-control" type="number" name="ram_gb" min="0">
+    </div>
+    <div class="form-row">
+      <label>Storage (GB)</label>
+      <input class="form-control" type="number" name="storage_gb" min="0">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div class="form-row">
+      <label>Role</label>
+      <input class="form-control" type="text" name="role" placeholder="e.g. Web Server, SIEM">
+    </div>
+    <div class="form-row">
+      <label>Status</label>
+      <select class="form-control" name="status">
+        <option value="active">Active</option>
+        <option value="offline">Offline</option>
+        <option value="maintenance">Maintenance</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row" style="display:flex;align-items:center;gap:8px;">
+    <input type="checkbox" name="public_exposed" id="vm_pub" value="1">
+    <label for="vm_pub" style="text-transform:none;font-size:12px;font-weight:normal;cursor:pointer;">Publicly exposed (internet-facing)</label>
+  </div>
+  <div class="form-row">
+    <label>Notes</label>
+    <textarea class="form-control" name="notes"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>

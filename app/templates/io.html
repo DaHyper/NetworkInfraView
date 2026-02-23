@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Import / Export — NetworkInfraView{% endblock %}
+{% block page_title %}Import / Export{% endblock %}
+
+{% block content %}
+
+<div class="io-grid">
+
+  <!-- JSON Export -->
+  <div class="io-card">
+    <h3>Export JSON</h3>
+    <p>Download your full inventory as a structured JSON file. Use this to back up your data, share with others, or feed into AI tools for analysis.</p>
+    <div class="btn-group">
+      <a href="{{ url_for('data_io.export_json') }}" class="btn btn-primary">&#8595; Download JSON</a>
+    </div>
+  </div>
+
+  <!-- JSON Import -->
+  <div class="io-card">
+    <h3>Import JSON</h3>
+    <p>Restore from a JSON export file. <strong style="color:#b00;">This will replace all existing data.</strong></p>
+    <form method="post" action="{{ url_for('data_io.import_json') }}" enctype="multipart/form-data">
+      <div class="drop-zone" id="json-drop" onclick="document.getElementById('json-file').click()">
+        Click or drop a .json file here
+      </div>
+      <input type="file" id="json-file" name="file" accept=".json" style="display:none;" onchange="updateDropLabel(this, 'json-drop')">
+      <div class="btn-group mt-8">
+        <button type="submit" class="btn btn-primary">&#8593; Import JSON</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- YAML Export -->
+  <div class="io-card">
+    <h3>Export YAML</h3>
+    <p>Download your inventory as a YAML file. Human-readable and easy to edit manually or version-control.</p>
+    <div class="btn-group">
+      <a href="{{ url_for('data_io.export_yaml') }}" class="btn">&#8595; Download YAML</a>
+    </div>
+  </div>
+
+  <!-- YAML Import -->
+  <div class="io-card">
+    <h3>Import YAML</h3>
+    <p>Restore from a YAML export file. <strong style="color:#b00;">This will replace all existing data.</strong></p>
+    <form method="post" action="{{ url_for('data_io.import_yaml') }}" enctype="multipart/form-data">
+      <div class="drop-zone" id="yaml-drop" onclick="document.getElementById('yaml-file').click()">
+        Click or drop a .yaml file here
+      </div>
+      <input type="file" id="yaml-file" name="file" accept=".yaml,.yml" style="display:none;" onchange="updateDropLabel(this, 'yaml-drop')">
+      <div class="btn-group mt-8">
+        <button type="submit" class="btn">&#8593; Import YAML</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<!-- Diagram exports -->
+<div class="export-diagram-section">
+  <h3>Export Network Diagram</h3>
+  <p>These exports require the Network Map to be open. Open the map, then use the export buttons in the toolbar — or use the quick links below.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{{ url_for('map.view') }}" class="btn">&#9643; Open Map</a>
+    <span class="text-muted text-small" style="align-self:center;">Then use: PNG · SVG · HTML · PDF buttons in the map toolbar</span>
+  </div>
+</div>
+
+<!-- DOCX report -->
+<div class="export-diagram-section mt-16">
+  <h3>Export Full Report (DOCX)</h3>
+  <p>Generate a Microsoft Word document with all inventory tables — hardware, VMs, networks, storage, and more.</p>
+  <a href="{{ url_for('data_io.export_docx') }}" class="btn">&#8595; Download DOCX Report</a>
+</div>
+
+<!-- Format info -->
+<div class="table-card mt-16" style="padding:16px;">
+  <h3 style="font-size:13px;margin-bottom:8px;">About the raw data format</h3>
+  <p style="font-size:12px;color:#555;line-height:1.7;">
+    The JSON/YAML export is designed for AI ingestion and machine parsing. Each file contains a versioned schema with all entities and their relationships. You can feed this directly into a GPT/Claude conversation to ask questions about your infrastructure, generate documentation, or perform analysis.
+  </p>
+  <pre style="background:#f5f5f5;border:1px solid #ddd;border-radius:4px;padding:10px;font-size:10px;margin-top:10px;overflow-x:auto;">{
+  "export_version": "1.0",
+  "exported_at": "2024-01-01T00:00:00Z",
+  "app": "NetworkInfraView",
+  "data": {
+    "sites": [...],
+    "isps": [...],
+    "hardware": [...],
+    "firewalls": [...],
+    "vms": [...],
+    "networks": [...],
+    ...
+  }
+}</pre>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateDropLabel(input, dropId) {
+  const drop = document.getElementById(dropId);
+  if (input.files.length > 0) {
+    drop.textContent = '✓ ' + input.files[0].name;
+    drop.style.borderColor = 'var(--success)';
+    drop.style.color = 'var(--success)';
+  }
+}
+
+// Drag-and-drop support
+['json-drop', 'yaml-drop'].forEach(id => {
+  const zone = document.getElementById(id);
+  const inputId = id === 'json-drop' ? 'json-file' : 'yaml-file';
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const input = document.getElementById(inputId);
+      const dt = new DataTransfer();
+      dt.items.add(files[0]);
+      input.files = dt.files;
+      updateDropLabel(input, id);
+    }
+  });
+});
+</script>
+{% endblock %}

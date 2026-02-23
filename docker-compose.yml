@@ -1,0 +1,13 @@
+services:
+  networkinfraview:
+    build: .
+    container_name: networkinfraview
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./data:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/networkinfraview.db
+      - SECRET_KEY=change-me-in-production
+      - FLASK_DEBUG=false
+    restart: unless-stopped
