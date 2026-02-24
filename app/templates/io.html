@@ -56,8 +56,57 @@
 
 </div>
 
+<!-- CSV Section -->
+<div class="export-diagram-section mt-16">
+  <h3>CSV Import / Export</h3>
+  <p>Import individual entity types from a spreadsheet, or download existing records as CSV. Supported entities: <strong>sites, hardware, VMs, networks, clients</strong>.</p>
+
+  <div class="io-grid" style="margin-top:12px;">
+
+    <!-- CSV Import -->
+    <div class="io-card">
+      <h3>Import CSV</h3>
+      <p>Upload a CSV file for one entity type. Rows with unrecognised site names are skipped. Existing records are <strong>not</strong> deleted.</p>
+      <form method="post" action="{{ url_for('data_io.import_csv') }}" enctype="multipart/form-data">
+        <div class="form-group">
+          <label class="form-label">Entity type</label>
+          <select name="entity" class="form-control" required>
+            <option value="">-- select --</option>
+            <option value="sites">Sites</option>
+            <option value="hardware">Hardware</option>
+            <option value="vms">VMs</option>
+            <option value="networks">Networks / VLANs</option>
+            <option value="clients">Client Devices</option>
+          </select>
+        </div>
+        <div class="drop-zone" id="csv-drop" onclick="document.getElementById('csv-file').click()">
+          Click or drop a .csv file here
+        </div>
+        <input type="file" id="csv-file" name="file" accept=".csv" style="display:none;" onchange="updateDropLabel(this, 'csv-drop')">
+        <div class="btn-group mt-8">
+          <button type="submit" class="btn">&#8593; Import CSV</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- CSV Export -->
+    <div class="io-card">
+      <h3>Export CSV</h3>
+      <p>Download any entity type as a CSV file, ready to open in Excel or Google Sheets.</p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+        <a href="{{ url_for('data_io.export_csv', entity='sites') }}" class="btn">&#8595; Sites</a>
+        <a href="{{ url_for('data_io.export_csv', entity='hardware') }}" class="btn">&#8595; Hardware</a>
+        <a href="{{ url_for('data_io.export_csv', entity='vms') }}" class="btn">&#8595; VMs</a>
+        <a href="{{ url_for('data_io.export_csv', entity='networks') }}" class="btn">&#8595; Networks / VLANs</a>
+        <a href="{{ url_for('data_io.export_csv', entity='clients') }}" class="btn">&#8595; Client Devices</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- Diagram exports -->
-<div class="export-diagram-section">
+<div class="export-diagram-section mt-16">
   <h3>Export Network Diagram</h3>
   <p>These exports require the Network Map to be open. Open the map, then use the export buttons in the toolbar — or use the quick links below.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -108,9 +157,10 @@ function updateDropLabel(input, dropId) {
 }
 
 // Drag-and-drop support
-['json-drop', 'yaml-drop'].forEach(id => {
+const dropMap = { 'json-drop': 'json-file', 'yaml-drop': 'yaml-file', 'csv-drop': 'csv-file' };
+Object.entries(dropMap).forEach(([id, inputId]) => {
   const zone = document.getElementById(id);
-  const inputId = id === 'json-drop' ? 'json-file' : 'yaml-file';
+  if (!zone) return;
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', e => {

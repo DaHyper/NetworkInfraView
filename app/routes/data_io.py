@@ -1,7 +1,7 @@
 import csv
 import json
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, jsonify, request, send_file, flash, redirect, url_for
 from app.database import db
 from app.models import (Site, ISP, Hardware, Hypervisor, Firewall, VM,
@@ -27,7 +27,7 @@ def build_export_dict():
     """Build a complete export dictionary from the database."""
     return {
         "export_version": "1.0",
-        "exported_at": datetime.utcnow().isoformat() + "Z",
+        "exported_at": datetime.now(timezone.utc).isoformat() + "Z",
         "app": "NetworkInfraView",
         "data": {
             "sites":    [s.to_dict() for s in Site.query.all()],
@@ -161,7 +161,7 @@ def index():
 def export_json():
     data = build_export_dict()
     buf = io.BytesIO(json.dumps(data, indent=2, default=str).encode("utf-8"))
-    filename = f"networkinfraview-export-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.json"
+    filename = f"networkinfraview-export-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.json"
     return send_file(buf, mimetype="application/json",
                      as_attachment=True, download_name=filename)
 
@@ -189,7 +189,7 @@ def export_yaml():
         return redirect(url_for("data_io.index"))
     data = build_export_dict()
     buf = io.BytesIO(yaml.dump(data, default_flow_style=False, allow_unicode=True).encode("utf-8"))
-    filename = f"networkinfraview-export-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.yaml"
+    filename = f"networkinfraview-export-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.yaml"
     return send_file(buf, mimetype="text/yaml",
                      as_attachment=True, download_name=filename)
 
@@ -221,7 +221,7 @@ def export_docx():
 
     doc = DocxDocument()
     doc.add_heading("NetworkInfraView — Infrastructure Report", 0)
-    doc.add_paragraph(f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
+    doc.add_paragraph(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     doc.add_paragraph("")
 
     sections = [
@@ -270,7 +270,7 @@ def export_docx():
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
-    filename = f"networkinfraview-report-{datetime.utcnow().strftime('%Y%m%d')}.docx"
+    filename = f"networkinfraview-report-{datetime.now(timezone.utc).strftime('%Y%m%d')}.docx"
     return send_file(buf,
                      mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                      as_attachment=True, download_name=filename)
@@ -442,7 +442,7 @@ def export_csv(entity):
         w.writerow(row_fn(item))
 
     out = io.BytesIO(buf.getvalue().encode("utf-8"))
-    filename = f"networkinfraview-{entity}-{datetime.utcnow().strftime('%Y%m%d')}.csv"
+    filename = f"networkinfraview-{entity}-{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"
     return send_file(out, mimetype="text/csv", as_attachment=True, download_name=filename)
 
 
