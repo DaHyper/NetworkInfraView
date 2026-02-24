@@ -72,3 +72,23 @@ def delete(id):
     db.session.commit()
     flash("Client device deleted.", "success")
     return redirect(url_for("clients.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    c = ClientDevice.query.get_or_404(id)
+    copy = ClientDevice(
+        site_id=c.site_id,
+        network_id=c.network_id,
+        name="Copy of " + c.name,
+        owner=c.owner,
+        device_type=c.device_type,
+        ip_address=None,
+        mac_address=None,
+        os=c.os,
+        notes=c.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{c.name}'.", "success")
+    return redirect(url_for("clients.index"))

@@ -417,7 +417,7 @@ img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof cytoscape === 'undefined') {
     document.getElementById('cy-container').innerHTML =
-      '<div style="padding:40px;text-align:center;color:#888;">Error: Cytoscape.js failed to load. Check your internet connection.</div>';
+      '<div style="padding:40px;text-align:center;color:#888;">Error: Cytoscape.js failed to load.</div>';
     return;
   }
   initCytoscape();

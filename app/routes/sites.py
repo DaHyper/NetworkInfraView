@@ -55,3 +55,19 @@ def delete(id):
     db.session.commit()
     flash("Site deleted.", "success")
     return redirect(url_for("sites.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    s = Site.query.get_or_404(id)
+    copy = Site(
+        name="Copy of " + s.name,
+        location=s.location,
+        address=s.address,
+        timezone=s.timezone,
+        notes=s.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{s.name}'.", "success")
+    return redirect(url_for("sites.index"))

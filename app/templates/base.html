@@ -28,49 +28,23 @@
   </div>
 
   <div class="nav-section-label">Overview</div>
-  <a href="{{ url_for('main.index') }}" class="nav-item {% if request.endpoint == 'main.index' %}active{% endif %}">
-    <span class="nav-icon">&#9783;</span> Dashboard
-  </a>
-  <a href="{{ url_for('map.view') }}" class="nav-item {% if request.endpoint == 'map.view' %}active{% endif %}">
-    <span class="nav-icon">&#9643;</span> Network Map
-  </a>
+  <a href="{{ url_for('main.index') }}" class="nav-item {% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
+  <a href="{{ url_for('map.view') }}" class="nav-item {% if request.endpoint == 'map.view' %}active{% endif %}">Network Map</a>
 
   <div class="nav-section-label">Infrastructure</div>
-  <a href="{{ url_for('sites.index') }}" class="nav-item {% if request.blueprint == 'sites' %}active{% endif %}">
-    <span class="nav-icon">&#127970;</span> Sites
-  </a>
-  <a href="{{ url_for('isps.index') }}" class="nav-item {% if request.blueprint == 'isps' %}active{% endif %}">
-    <span class="nav-icon">&#127760;</span> ISPs
-  </a>
-  <a href="{{ url_for('hardware.index') }}" class="nav-item {% if request.blueprint == 'hardware' %}active{% endif %}">
-    <span class="nav-icon">&#128421;</span> Hardware
-  </a>
-  <a href="{{ url_for('firewalls.index') }}" class="nav-item {% if request.blueprint == 'firewalls' %}active{% endif %}">
-    <span class="nav-icon">&#128737;</span> Firewalls
-  </a>
-  <a href="{{ url_for('vms.index') }}" class="nav-item {% if request.blueprint == 'vms' %}active{% endif %}">
-    <span class="nav-icon">&#9634;</span> Virtual Machines
-  </a>
-  <a href="{{ url_for('apps.index') }}" class="nav-item {% if request.blueprint == 'apps' %}active{% endif %}">
-    <span class="nav-icon">&#9881;</span> Apps &amp; Services
-  </a>
-  <a href="{{ url_for('storage.index') }}" class="nav-item {% if request.blueprint == 'storage' %}active{% endif %}">
-    <span class="nav-icon">&#128190;</span> Storage
-  </a>
-  <a href="{{ url_for('networks.index') }}" class="nav-item {% if request.blueprint == 'networks' %}active{% endif %}">
-    <span class="nav-icon">&#128279;</span> Networks / VLANs
-  </a>
-  <a href="{{ url_for('clients.index') }}" class="nav-item {% if request.blueprint == 'clients' %}active{% endif %}">
-    <span class="nav-icon">&#128187;</span> Client Devices
-  </a>
-  <a href="{{ url_for('misc.index') }}" class="nav-item {% if request.blueprint == 'misc' %}active{% endif %}">
-    <span class="nav-icon">&#9869;</span> Misc
-  </a>
+  <a href="{{ url_for('sites.index') }}" class="nav-item {% if request.blueprint == 'sites' %}active{% endif %}">Sites</a>
+  <a href="{{ url_for('isps.index') }}" class="nav-item {% if request.blueprint == 'isps' %}active{% endif %}">ISPs</a>
+  <a href="{{ url_for('hardware.index') }}" class="nav-item {% if request.blueprint == 'hardware' %}active{% endif %}">Hardware</a>
+  <a href="{{ url_for('firewalls.index') }}" class="nav-item {% if request.blueprint == 'firewalls' %}active{% endif %}">Firewalls</a>
+  <a href="{{ url_for('vms.index') }}" class="nav-item {% if request.blueprint == 'vms' %}active{% endif %}">Virtual Machines</a>
+  <a href="{{ url_for('apps.index') }}" class="nav-item {% if request.blueprint == 'apps' %}active{% endif %}">Apps &amp; Services</a>
+  <a href="{{ url_for('storage.index') }}" class="nav-item {% if request.blueprint == 'storage' %}active{% endif %}">Storage</a>
+  <a href="{{ url_for('networks.index') }}" class="nav-item {% if request.blueprint == 'networks' %}active{% endif %}">Networks / VLANs</a>
+  <a href="{{ url_for('clients.index') }}" class="nav-item {% if request.blueprint == 'clients' %}active{% endif %}">Client Devices</a>
+  <a href="{{ url_for('misc.index') }}" class="nav-item {% if request.blueprint == 'misc' %}active{% endif %}">Misc</a>
 
   <div class="nav-section-label">Data</div>
-  <a href="{{ url_for('data_io.index') }}" class="nav-item {% if request.blueprint == 'data_io' %}active{% endif %}">
-    <span class="nav-icon">&#8645;</span> Import / Export
-  </a>
+  <a href="{{ url_for('data_io.index') }}" class="nav-item {% if request.blueprint == 'data_io' %}active{% endif %}">Import / Export</a>
 </nav>
 
 <!-- Main content -->
@@ -80,7 +54,11 @@
       <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
     </div>
     <div class="topbar-right">
+      <form action="{{ url_for('search.index') }}" method="get" style="display:contents;">
+        <input type="text" name="q" class="table-search" placeholder="Search all..." value="{{ request.args.get('q', '') if request.endpoint == 'search.index' else '' }}" style="min-width:160px;">
+      </form>
       {% block topbar_actions %}{% endblock %}
+      <button id="theme-toggle" class="btn btn-sm" title="Toggle light/dark mode">Light</button>
     </div>
   </header>
 

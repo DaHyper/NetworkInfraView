@@ -3,15 +3,12 @@
 {% block page_title %}Hardware{% endblock %}
 
 {% block topbar_actions %}
+<input type="text" class="table-search" id="search-input" placeholder="Filter..." oninput="filterTable()">
 <button class="btn btn-primary" onclick="openAddModal()">+ Add Hardware</button>
 {% endblock %}
 
 {% block content %}
 <div class="table-card">
-  <div class="table-toolbar">
-    <input type="text" class="table-search" id="search-input" placeholder="Search hardware..." oninput="filterTable()">
-    <span class="text-muted text-small" id="row-count"></span>
-  </div>
   <table id="main-table">
     <thead>
       <tr>
@@ -35,7 +32,7 @@
         <td><strong>{{ item.name }}</strong></td>
         <td>{{ item.device_type }}</td>
         <td>{{ item.role or "" }}</td>
-        <td><code style="font-size:11px;">{{ item.ip_mgmt or "" }}</code></td>
+        <td><code class="ip-addr">{{ item.ip_mgmt or "" }}</code>{% if item.ip_mgmt %}<button class="btn-ping btn-sm" onclick="pingIP(this,'{{ item.ip_mgmt }}')" title="Ping">●</button>{% endif %}</td>
         <td>{{ (item.cpu_cores | string + 'c') if item.cpu_cores else "" }}</td>
         <td>{{ (item.ram_gb | string + 'GB') if item.ram_gb else "" }}</td>
         <td>{{ item.make_model or "" }}</td>
@@ -43,6 +40,9 @@
         <td><span class="badge badge-{{ item.status }}">{{ item.status }}</span></td>
         <td class="td-actions">
           <button class="btn btn-sm" onclick="openEditModal({{ item.id }}, '/hardware/{{ item.id }}/edit')">Edit</button>
+          <form method="post" action="/hardware/{{ item.id }}/clone" style="display:inline;">
+            <button class="btn btn-sm" type="submit">Clone</button>
+          </form>
           <form method="post" action="/hardware/{{ item.id }}/delete" style="display:inline;" onsubmit="return confirm('Delete {{ item.name }}?')">
             <button class="btn btn-sm btn-danger" type="submit">Delete</button>
           </form>
@@ -65,18 +65,11 @@
 const ENTITY = "hardware";
 const CREATE_URL = "/hardware/create";
 
-function updateCount() {
-  const rows = document.querySelectorAll('#main-table tbody tr:not(.empty-row):not([style*="none"])');
-  document.getElementById('row-count').textContent = rows.length + ' item' + (rows.length !== 1 ? 's' : '');
-}
-updateCount();
-
 function filterTable() {
   const q = document.getElementById('search-input').value.toLowerCase();
   document.querySelectorAll('#main-table tbody tr:not(.empty-row)').forEach(row => {
     row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
-  updateCount();
 }
 
 let sortCol = -1, sortAsc = true;
@@ -93,6 +86,32 @@ function sortTable(col, th) {
   });
   rows.forEach(r => tbody.appendChild(r));
 }
+
+// Ping
+function pingIP(btn, ip) {
+  btn.textContent = '…';
+  btn.disabled = true;
+  fetch('/util/ping?ip=' + encodeURIComponent(ip))
+    .then(r => r.json())
+    .then(d => {
+      btn.textContent = d.reachable ? '●' : '○';
+      btn.style.color = d.reachable ? 'var(--success)' : 'var(--danger)';
+      btn.title = d.reachable ? 'Online' : 'Offline';
+      btn.disabled = false;
+    })
+    .catch(() => { btn.textContent = '?'; btn.disabled = false; });
+}
+
+// IP conflict detection
+fetch('/util/ip-conflicts').then(r => r.json()).then(d => {
+  if (!d.conflicts.length) return;
+  document.querySelectorAll('code.ip-addr').forEach(el => {
+    if (d.conflicts.includes(el.textContent.trim())) {
+      el.classList.add('ip-conflict');
+      el.title = 'Duplicate IP detected';
+    }
+  });
+});
 
 function openAddModal() {
   const tpl = document.getElementById('form-template');

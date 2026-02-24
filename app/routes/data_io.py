@@ -1,3 +1,4 @@
+import csv
 import json
 import io
 from datetime import datetime
@@ -273,6 +274,176 @@ def export_docx():
     return send_file(buf,
                      mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                      as_attachment=True, download_name=filename)
+
+
+# ── CSV Import ────────────────────────────────────────────────────
+# Expected CSV column headers per entity type:
+#   hardware: name, site_name, device_type, role, ip_mgmt, cpu_cores, ram_gb, make_model, status, notes
+#   vms:      name, site_name, os, ip_address, cpu_cores, ram_gb, role, status, notes
+#   networks: name, site_name, vlan_id, subnet, color, description
+#   sites:    name, location, address, timezone, notes
+#   clients:  name, site_name, device_type, owner, ip_address, mac_address, os, notes
+
+@bp.route("/import/csv", methods=["POST"])
+def import_csv():
+    f = request.files.get("file")
+    entity = request.form.get("entity", "").strip()
+    if not f or not entity:
+        flash("File and entity type required.", "error")
+        return redirect(url_for("data_io.index"))
+
+    try:
+        text = f.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(text))
+        rows = list(reader)
+        if not rows:
+            flash("CSV is empty.", "error")
+            return redirect(url_for("data_io.index"))
+
+        # Build site lookup by name
+        site_lookup = {s.name.lower(): s.id for s in Site.query.all()}
+
+        def get_site(name):
+            return site_lookup.get((name or "").strip().lower())
+
+        count = 0
+        if entity == "hardware":
+            for r in rows:
+                sid = get_site(r.get("site_name", ""))
+                if not sid:
+                    continue
+                db.session.add(Hardware(
+                    site_id=sid,
+                    name=r.get("name", "").strip(),
+                    device_type=r.get("device_type", "server").strip() or "server",
+                    role=r.get("role", "").strip(),
+                    ip_mgmt=r.get("ip_mgmt", "").strip() or None,
+                    cpu_cores=int(r.get("cpu_cores") or 0) or None,
+                    ram_gb=int(r.get("ram_gb") or 0) or None,
+                    make_model=r.get("make_model", "").strip(),
+                    status=r.get("status", "active").strip() or "active",
+                    notes=r.get("notes", "").strip(),
+                ))
+                count += 1
+
+        elif entity == "vms":
+            hyp_lookup = {h.hardware.name.lower(): h.id
+                          for h in Hypervisor.query.all() if h.hardware}
+            net_lookup = {n.name.lower(): n.id for n in Network.query.all()}
+            for r in rows:
+                sid = get_site(r.get("site_name", ""))
+                if not sid:
+                    continue
+                db.session.add(VM(
+                    site_id=sid,
+                    hypervisor_id=hyp_lookup.get(r.get("hypervisor_name", "").lower()),
+                    network_id=net_lookup.get(r.get("network_name", "").lower()),
+                    name=r.get("name", "").strip(),
+                    os=r.get("os", "").strip(),
+                    ip_address=r.get("ip_address", "").strip() or None,
+                    cpu_cores=int(r.get("cpu_cores") or 0) or None,
+                    ram_gb=int(r.get("ram_gb") or 0) or None,
+                    role=r.get("role", "").strip(),
+                    status=r.get("status", "active").strip() or "active",
+                    notes=r.get("notes", "").strip(),
+                ))
+                count += 1
+
+        elif entity == "networks":
+            for r in rows:
+                sid = get_site(r.get("site_name", ""))
+                if not sid:
+                    continue
+                db.session.add(Network(
+                    site_id=sid,
+                    name=r.get("name", "").strip(),
+                    vlan_id=int(r.get("vlan_id") or 0) or None,
+                    subnet=r.get("subnet", "").strip() or None,
+                    color=r.get("color", "#6366f1").strip() or "#6366f1",
+                    description=r.get("description", "").strip(),
+                ))
+                count += 1
+
+        elif entity == "sites":
+            for r in rows:
+                db.session.add(Site(
+                    name=r.get("name", "").strip(),
+                    location=r.get("location", "").strip(),
+                    address=r.get("address", "").strip(),
+                    timezone=r.get("timezone", "").strip(),
+                    notes=r.get("notes", "").strip(),
+                ))
+                count += 1
+
+        elif entity == "clients":
+            net_lookup = {n.name.lower(): n.id for n in Network.query.all()}
+            for r in rows:
+                sid = get_site(r.get("site_name", ""))
+                if not sid:
+                    continue
+                db.session.add(ClientDevice(
+                    site_id=sid,
+                    network_id=net_lookup.get(r.get("network_name", "").lower()),
+                    name=r.get("name", "").strip(),
+                    owner=r.get("owner", "").strip(),
+                    device_type=r.get("device_type", "laptop").strip() or "laptop",
+                    ip_address=r.get("ip_address", "").strip() or None,
+                    mac_address=r.get("mac_address", "").strip() or None,
+                    os=r.get("os", "").strip(),
+                    notes=r.get("notes", "").strip(),
+                ))
+                count += 1
+
+        else:
+            flash(f"Unknown entity type: {entity}", "error")
+            return redirect(url_for("data_io.index"))
+
+        db.session.commit()
+        flash(f"Imported {count} {entity} from CSV.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"CSV import failed: {e}", "error")
+
+    return redirect(url_for("data_io.index"))
+
+
+@bp.route("/export/csv/<entity>")
+def export_csv(entity):
+    """Export a single entity type as CSV."""
+    headers_map = {
+        "hardware": (["name", "site", "device_type", "role", "ip_mgmt", "cpu_cores", "ram_gb", "make_model", "status", "notes"],
+                     Hardware.query.all(),
+                     lambda h: [h.name, h.site.name, h.device_type, h.role or "", h.ip_mgmt or "",
+                                str(h.cpu_cores or ""), str(h.ram_gb or ""), h.make_model or "", h.status, h.notes or ""]),
+        "vms":      (["name", "site", "os", "ip_address", "cpu_cores", "ram_gb", "role", "status", "notes"],
+                     VM.query.all(),
+                     lambda v: [v.name, v.site.name, v.os or "", v.ip_address or "",
+                                str(v.cpu_cores or ""), str(v.ram_gb or ""), v.role or "", v.status, v.notes or ""]),
+        "networks": (["name", "site", "vlan_id", "subnet", "color", "description"],
+                     Network.query.all(),
+                     lambda n: [n.name, n.site.name, str(n.vlan_id or ""), n.subnet or "", n.color or "", n.description or ""]),
+        "sites":    (["name", "location", "address", "timezone", "notes"],
+                     Site.query.all(),
+                     lambda s: [s.name, s.location or "", s.address or "", s.timezone or "", s.notes or ""]),
+        "clients":  (["name", "site", "device_type", "owner", "ip_address", "mac_address", "os", "notes"],
+                     ClientDevice.query.all(),
+                     lambda c: [c.name, c.site.name, c.device_type or "", c.owner or "",
+                                c.ip_address or "", c.mac_address or "", c.os or "", c.notes or ""]),
+    }
+    if entity not in headers_map:
+        flash("Unknown entity.", "error")
+        return redirect(url_for("data_io.index"))
+
+    headers, items, row_fn = headers_map[entity]
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(headers)
+    for item in items:
+        w.writerow(row_fn(item))
+
+    out = io.BytesIO(buf.getvalue().encode("utf-8"))
+    filename = f"networkinfraview-{entity}-{datetime.utcnow().strftime('%Y%m%d')}.csv"
+    return send_file(out, mimetype="text/csv", as_attachment=True, download_name=filename)
 
 
 # ── API export for JS ─────────────────────────────────────────────

@@ -68,3 +68,27 @@ def delete(id):
     db.session.commit()
     flash("VM deleted.", "success")
     return redirect(url_for("vms.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    v = VM.query.get_or_404(id)
+    copy = VM(
+        site_id=v.site_id,
+        hypervisor_id=v.hypervisor_id,
+        network_id=v.network_id,
+        name="Copy of " + v.name,
+        os=v.os,
+        ip_address=None,
+        cpu_cores=v.cpu_cores,
+        ram_gb=v.ram_gb,
+        storage_gb=v.storage_gb,
+        role=v.role,
+        status=v.status,
+        public_exposed=v.public_exposed,
+        notes=v.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{v.name}'.", "success")
+    return redirect(url_for("vms.index"))

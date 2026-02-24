@@ -77,3 +77,25 @@ def delete(id):
     db.session.commit()
     flash("Hardware deleted.", "success")
     return redirect(url_for("hardware.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    h = Hardware.query.get_or_404(id)
+    copy = Hardware(
+        site_id=h.site_id,
+        name="Copy of " + h.name,
+        device_type=h.device_type,
+        role=h.role,
+        status=h.status,
+        ip_mgmt=None,
+        cpu_cores=h.cpu_cores,
+        ram_gb=h.ram_gb,
+        rack_position=h.rack_position,
+        make_model=h.make_model,
+        notes=h.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{h.name}'.", "success")
+    return redirect(url_for("hardware.index"))

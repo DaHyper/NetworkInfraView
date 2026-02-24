@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Search — NetworkInfraView{% endblock %}
+{% block page_title %}Search{% endblock %}
+
+{% block content %}
+{% if not q %}
+<p class="text-muted">Enter a search term in the search box above.</p>
+{% elif total == 0 %}
+<p class="text-muted">No results for "{{ q }}".</p>
+{% else %}
+<p class="text-muted" style="margin-bottom:16px;">{{ total }} result{{ 's' if total != 1 }} for "{{ q }}"</p>
+
+{% for category, items in results.items() %}
+<div style="margin-bottom:24px;">
+  <div class="table-card-header">{{ category | title }}  <span class="text-small text-muted">({{ items | length }})</span></div>
+  <table>
+    <tbody>
+      {% for item, list_url in items %}
+      <tr>
+        <td style="width:30%;"><strong>{{ item.name }}</strong></td>
+        <td>
+          {% if item.location is defined %}{{ item.location or "" }}{% endif %}
+          {% if item.ip_mgmt is defined and item.ip_mgmt %}<code>{{ item.ip_mgmt }}</code>{% endif %}
+          {% if item.ip_address is defined and item.ip_address %}<code>{{ item.ip_address }}</code>{% endif %}
+          {% if item.public_ip is defined and item.public_ip %}<code>{{ item.public_ip }}</code>{% endif %}
+          {% if item.subnet is defined and item.subnet %}<code>{{ item.subnet }}</code>{% endif %}
+          {% if item.type is defined %}{{ item.type or "" }}{% endif %}
+          {% if item.device_type is defined %}{{ item.device_type or "" }}{% endif %}
+          {% if item.category is defined %}{{ item.category or "" }}{% endif %}
+        </td>
+        <td class="td-actions">
+          <a href="{{ list_url }}" class="btn btn-sm">View List</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

@@ -62,3 +62,21 @@ def delete(id):
     db.session.commit()
     flash("Firewall deleted.", "success")
     return redirect(url_for("firewalls.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    f = Firewall.query.get_or_404(id)
+    copy = Firewall(
+        site_id=f.site_id,
+        name="Copy of " + f.name,
+        public_ip=None,
+        management_ip=None,
+        model=f.model,
+        status=f.status,
+        notes=f.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{f.name}'.", "success")
+    return redirect(url_for("firewalls.index"))

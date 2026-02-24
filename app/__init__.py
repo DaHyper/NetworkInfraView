@@ -23,6 +23,8 @@ def create_app(config_class=Config):
     from app.routes.misc import bp as misc_bp
     from app.routes.map import bp as map_bp
     from app.routes.data_io import bp as data_io_bp
+    from app.routes.search import bp as search_bp
+    from app.routes.util import bp as util_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(sites_bp)
@@ -37,6 +39,8 @@ def create_app(config_class=Config):
     app.register_blueprint(misc_bp)
     app.register_blueprint(map_bp)
     app.register_blueprint(data_io_bp)
+    app.register_blueprint(search_bp)
+    app.register_blueprint(util_bp)
 
     with app.app_context():
         db.create_all()

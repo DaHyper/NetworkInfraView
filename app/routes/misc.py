@@ -61,3 +61,20 @@ def delete(id):
     db.session.commit()
     flash("Misc item deleted.", "success")
     return redirect(url_for("misc.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    m = Misc.query.get_or_404(id)
+    copy = Misc(
+        site_id=m.site_id,
+        name="Copy of " + m.name,
+        category=m.category,
+        description=m.description,
+        ip_address=None,
+        notes=m.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{m.name}'.", "success")
+    return redirect(url_for("misc.index"))

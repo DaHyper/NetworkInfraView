@@ -76,3 +76,23 @@ def delete(id):
     db.session.commit()
     flash("App deleted.", "success")
     return redirect(url_for("apps.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    a = App.query.get_or_404(id)
+    copy = App(
+        vm_id=a.vm_id,
+        hardware_id=a.hardware_id,
+        name="Copy of " + a.name,
+        version=a.version,
+        port=a.port,
+        protocol=a.protocol,
+        public_exposed=a.public_exposed,
+        url=a.url,
+        notes=a.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{a.name}'.", "success")
+    return redirect(url_for("apps.index"))

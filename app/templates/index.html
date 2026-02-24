@@ -4,85 +4,83 @@
 
 {% block content %}
 <div class="stats-grid">
-  <a href="{{ url_for('sites.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('sites.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.sites }}</div>
     <div class="stat-label">Sites</div>
   </a>
-  <a href="{{ url_for('isps.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('isps.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.isps }}</div>
     <div class="stat-label">ISPs</div>
   </a>
-  <a href="{{ url_for('hardware.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('hardware.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.hardware }}</div>
     <div class="stat-label">Hardware</div>
   </a>
-  <a href="{{ url_for('firewalls.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('firewalls.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.firewalls }}</div>
     <div class="stat-label">Firewalls</div>
   </a>
-  <a href="{{ url_for('vms.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('vms.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.vms }}</div>
     <div class="stat-label">VMs</div>
   </a>
-  <a href="{{ url_for('apps.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('apps.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.apps }}</div>
     <div class="stat-label">Apps</div>
   </a>
-  <a href="{{ url_for('storage.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('storage.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.storage }}</div>
     <div class="stat-label">Storage</div>
   </a>
-  <a href="{{ url_for('networks.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('networks.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.networks }}</div>
     <div class="stat-label">Networks</div>
   </a>
-  <a href="{{ url_for('clients.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('clients.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.clients }}</div>
     <div class="stat-label">Clients</div>
   </a>
-  <a href="{{ url_for('misc.index') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('misc.index') }}" class="stat-card">
     <div class="stat-num">{{ counts.misc }}</div>
     <div class="stat-label">Misc</div>
   </a>
-  <a href="{{ url_for('map.view') }}" class="stat-card" style="text-decoration:none;color:inherit;">
+  <a href="{{ url_for('map.view') }}" class="stat-card">
     <div class="stat-num">{{ counts.connections }}</div>
     <div class="stat-label">Connections</div>
   </a>
 </div>
 
 {% if counts.sites == 0 %}
-<div class="table-card" style="padding:24px;text-align:center;">
-  <p style="color:#888;font-size:13px;margin-bottom:12px;">No data yet. Start by adding a site, then add hardware, VMs, and networks.</p>
+<div class="table-empty">
+  <p>No data yet. Start by adding a site, then add hardware, VMs, and networks.</p>
   <a href="{{ url_for('sites.index') }}" class="btn btn-primary">Add First Site</a>
 </div>
 {% else %}
-<div class="table-card">
-  <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:bold;font-size:12px;">Sites</div>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Location</th>
-        <th>ISPs</th>
-        <th>Hardware</th>
-        <th>VMs</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for site in sites %}
-      <tr>
-        <td><strong>{{ site.name }}</strong></td>
-        <td>{{ site.location or "" }}</td>
-        <td>{{ site.isps | length }}</td>
-        <td>{{ site.hardware | length }}</td>
-        <td>{{ site.vms | length }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<div class="table-card-header">Sites</div>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Location</th>
+      <th>ISPs</th>
+      <th>Hardware</th>
+      <th>VMs</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for site in sites %}
+    <tr>
+      <td><strong>{{ site.name }}</strong></td>
+      <td>{{ site.location or "" }}</td>
+      <td>{{ site.isps | length }}</td>
+      <td>{{ site.hardware | length }}</td>
+      <td>{{ site.vms | length }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
-<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+<div class="action-row">
   <a href="{{ url_for('map.view') }}" class="btn btn-primary">&#9643; Open Network Map</a>
   <a href="{{ url_for('data_io.index') }}" class="btn">&#8645; Import / Export</a>
 </div>

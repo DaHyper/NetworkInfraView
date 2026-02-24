@@ -3,15 +3,12 @@
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block topbar_actions %}
+<input type="text" class="table-search" id="search-input" placeholder="Filter..." oninput="filterTable()">
 <button class="btn btn-primary" onclick="openAddModal()">+ Add {{ entity | title }}</button>
 {% endblock %}
 
 {% block content %}
 <div class="table-card">
-  <div class="table-toolbar">
-    <input type="text" class="table-search" id="search-input" placeholder="Search {{ title | lower }}..." oninput="filterTable()">
-    <span class="text-muted text-small" id="row-count"></span>
-  </div>
   <table id="main-table">
     <thead>
       <tr>
@@ -42,6 +39,9 @@
         {% endfor %}
         <td class="td-actions">
           <button class="btn btn-sm" onclick="openEditModal({{ item.id }}, '{{ url_for(blueprint + '.edit', id=item.id) }}')">Edit</button>
+          <form method="post" action="{{ url_for(blueprint + '.clone', id=item.id) }}" style="display:inline;">
+            <button class="btn btn-sm" type="submit">Clone</button>
+          </form>
           <form method="post" action="{{ url_for(blueprint + '.delete', id=item.id) }}" style="display:inline;" onsubmit="return confirm('Delete this {{ entity }}?')">
             <button class="btn btn-sm btn-danger" type="submit">Delete</button>
           </form>
@@ -82,20 +82,12 @@ const ENTITY = "{{ entity }}";
 const BLUEPRINT = "{{ blueprint }}";
 const CREATE_URL = "{{ url_for(blueprint + '.create') }}";
 
-// Row count
-function updateCount() {
-  const rows = document.querySelectorAll('#main-table tbody tr:not(.empty-row):not([style*="none"])');
-  document.getElementById('row-count').textContent = rows.length + ' item' + (rows.length !== 1 ? 's' : '');
-}
-updateCount();
-
 // Search filter
 function filterTable() {
   const q = document.getElementById('search-input').value.toLowerCase();
   document.querySelectorAll('#main-table tbody tr:not(.empty-row)').forEach(row => {
     row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
-  updateCount();
 }
 
 // Sort

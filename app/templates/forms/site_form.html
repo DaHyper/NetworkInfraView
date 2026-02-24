@@ -10,7 +10,80 @@
     </div>
     <div class="form-row">
       <label>Timezone</label>
-      <input class="form-control" type="text" name="timezone" placeholder="e.g. America/Chicago">
+      <select class="form-control" name="timezone">
+        <option value="">— Select —</option>
+        <optgroup label="UTC">
+          <option value="UTC">UTC</option>
+        </optgroup>
+        <optgroup label="North America">
+          <option value="America/New_York">America/New_York (ET)</option>
+          <option value="America/Chicago">America/Chicago (CT)</option>
+          <option value="America/Denver">America/Denver (MT)</option>
+          <option value="America/Los_Angeles">America/Los_Angeles (PT)</option>
+          <option value="America/Phoenix">America/Phoenix (MST, no DST)</option>
+          <option value="America/Anchorage">America/Anchorage (AKT)</option>
+          <option value="America/Honolulu">America/Honolulu (HST)</option>
+          <option value="America/Toronto">America/Toronto</option>
+          <option value="America/Vancouver">America/Vancouver</option>
+          <option value="America/Mexico_City">America/Mexico_City</option>
+        </optgroup>
+        <optgroup label="South America">
+          <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+          <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires</option>
+          <option value="America/Bogota">America/Bogota</option>
+          <option value="America/Santiago">America/Santiago</option>
+        </optgroup>
+        <optgroup label="Europe">
+          <option value="Europe/London">Europe/London (GMT/BST)</option>
+          <option value="Europe/Paris">Europe/Paris (CET)</option>
+          <option value="Europe/Berlin">Europe/Berlin</option>
+          <option value="Europe/Amsterdam">Europe/Amsterdam</option>
+          <option value="Europe/Madrid">Europe/Madrid</option>
+          <option value="Europe/Rome">Europe/Rome</option>
+          <option value="Europe/Zurich">Europe/Zurich</option>
+          <option value="Europe/Stockholm">Europe/Stockholm</option>
+          <option value="Europe/Warsaw">Europe/Warsaw</option>
+          <option value="Europe/Prague">Europe/Prague</option>
+          <option value="Europe/Helsinki">Europe/Helsinki</option>
+          <option value="Europe/Moscow">Europe/Moscow</option>
+          <option value="Europe/Istanbul">Europe/Istanbul</option>
+        </optgroup>
+        <optgroup label="Africa">
+          <option value="Africa/Cairo">Africa/Cairo</option>
+          <option value="Africa/Johannesburg">Africa/Johannesburg</option>
+          <option value="Africa/Lagos">Africa/Lagos</option>
+          <option value="Africa/Nairobi">Africa/Nairobi</option>
+        </optgroup>
+        <optgroup label="Middle East">
+          <option value="Asia/Dubai">Asia/Dubai</option>
+          <option value="Asia/Riyadh">Asia/Riyadh</option>
+          <option value="Asia/Tehran">Asia/Tehran</option>
+        </optgroup>
+        <optgroup label="Asia">
+          <option value="Asia/Karachi">Asia/Karachi</option>
+          <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+          <option value="Asia/Dhaka">Asia/Dhaka</option>
+          <option value="Asia/Bangkok">Asia/Bangkok</option>
+          <option value="Asia/Singapore">Asia/Singapore</option>
+          <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
+          <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
+          <option value="Asia/Taipei">Asia/Taipei</option>
+          <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+          <option value="Asia/Seoul">Asia/Seoul (KST)</option>
+          <option value="Asia/Jakarta">Asia/Jakarta</option>
+          <option value="Asia/Manila">Asia/Manila</option>
+        </optgroup>
+        <optgroup label="Australia / Pacific">
+          <option value="Australia/Perth">Australia/Perth</option>
+          <option value="Australia/Brisbane">Australia/Brisbane</option>
+          <option value="Australia/Sydney">Australia/Sydney</option>
+          <option value="Australia/Melbourne">Australia/Melbourne</option>
+          <option value="Australia/Adelaide">Australia/Adelaide</option>
+          <option value="Pacific/Auckland">Pacific/Auckland</option>
+          <option value="Pacific/Honolulu">Pacific/Honolulu</option>
+          <option value="Pacific/Fiji">Pacific/Fiji</option>
+        </optgroup>
+      </select>
     </div>
   </div>
   <div class="form-row">

@@ -65,3 +65,22 @@ def delete(id):
     db.session.commit()
     flash("Storage deleted.", "success")
     return redirect(url_for("storage.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    s = Storage.query.get_or_404(id)
+    copy = Storage(
+        site_id=s.site_id,
+        name="Copy of " + s.name,
+        type=s.type,
+        capacity_tb=s.capacity_tb,
+        ip_address=None,
+        protocol=s.protocol,
+        make_model=s.make_model,
+        notes=s.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{s.name}'.", "success")
+    return redirect(url_for("storage.index"))

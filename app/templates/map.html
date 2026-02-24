@@ -3,14 +3,11 @@
 {% block page_title %}Network Map{% endblock %}
 
 {% block head %}
-<!-- Cytoscape.js (CDN with local fallback) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"
-        integrity="sha512-4LjPAJ9FKVFkZ5R9UGYEOW4YBEXMHK2xIjGRgN3ZR5GJ8Ygxt3tg4HwMlMqj3gXIVixzMHVdIgMX5tSovDFg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="{{ url_for('static', filename='js/cytoscape.min.js') }}"></script>
 {% endblock %}
 
 {% block topbar_actions %}
-<div class="map-toolbar" style="margin:0;">
+<div class="map-toolbar">
   <select id="site-filter" onchange="loadGraph()">
     <option value="">All Sites</option>
     {% for site in sites %}
@@ -18,7 +15,7 @@
     {% endfor %}
   </select>
   <select id="layout-select" onchange="applyLayout()">
-    <option value="dagre">Hierarchical (dagre)</option>
+    <option value="dagre">Hierarchical</option>
     <option value="breadthfirst">Breadth-first</option>
     <option value="cose">Force-directed</option>
     <option value="grid">Grid</option>
@@ -29,7 +26,7 @@
   <button class="btn btn-sm" onclick="cy.zoom(cy.zoom() * 0.8)">−</button>
   <button class="btn btn-sm" onclick="saveLayout(this)">&#128190; Save Positions</button>
 </div>
-<div style="display:flex;gap:6px;margin-left:8px;">
+<div class="map-export-actions">
   <button class="btn btn-sm" onclick="exportPNG()">PNG</button>
   <button class="btn btn-sm" onclick="exportSVG()">SVG</button>
   <button class="btn btn-sm" onclick="exportHTML()">HTML</button>
@@ -49,7 +46,7 @@
 
 <!-- Connection modal -->
 <div id="conn-modal" class="modal-overlay hidden">
-  <div class="modal-box" style="width:380px;">
+  <div class="modal-box modal-box-sm">
     <div class="modal-header">
       <span class="modal-title">Add Connection</span>
       <button class="modal-close" onclick="document.getElementById('conn-modal').classList.add('hidden')">&times;</button>
@@ -79,7 +76,7 @@
         </div>
         <div class="form-row">
           <label>Color</label>
-          <input class="form-control" type="color" id="conn-color" value="#333333" style="height:34px;padding:2px 4px;">
+          <input class="form-control" type="color" id="conn-color" value="#333333">
         </div>
         <div class="form-actions">
           <button type="button" class="btn" onclick="document.getElementById('conn-modal').classList.add('hidden')">Cancel</button>
@@ -91,15 +88,15 @@
 </div>
 
 <!-- Legend -->
-<div id="map-legend" style="position:absolute;bottom:16px;left:calc(var(--sidebar-w) + 16px);background:#fff;border:1.5px solid var(--border);border-radius:6px;padding:8px 12px;font-size:10px;z-index:10;display:flex;gap:12px;flex-wrap:wrap;max-width:600px;">
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#1e3a8a;border-radius:2px;"></span>Site</div>
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#0891b2;border-radius:2px;"></span>ISP</div>
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#dc2626;border-radius:2px;"></span>Firewall</div>
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#555;border-radius:2px;"></span>Hardware</div>
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:2px;"></span>VM</div>
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#d97706;border-radius:2px;"></span>Network/VLAN</div>
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#7c3aed;border-radius:2px;"></span>Storage</div>
-  <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;background:#be185d;border-radius:2px;"></span>Client</div>
+<div class="map-legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#1e3a8a;"></span>Site</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#0891b2;"></span>ISP</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#dc2626;"></span>Firewall</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#555;"></span>Hardware</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>VM</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#d97706;"></span>Network/VLAN</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#7c3aed;"></span>Storage</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#be185d;"></span>Client</div>
 </div>
 {% endblock %}
 

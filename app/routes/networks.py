@@ -68,3 +68,20 @@ def api_list():
     """Used by other forms to populate network dropdowns."""
     nets = Network.query.order_by(Network.name).all()
     return jsonify([n.to_dict() for n in nets])
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    n = Network.query.get_or_404(id)
+    copy = Network(
+        site_id=n.site_id,
+        name="Copy of " + n.name,
+        vlan_id=None,
+        subnet=None,
+        color=n.color,
+        description=n.description,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{n.name}'.", "success")
+    return redirect(url_for("networks.index"))

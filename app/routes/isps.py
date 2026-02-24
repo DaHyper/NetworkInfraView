@@ -59,3 +59,20 @@ def delete(id):
     db.session.commit()
     flash("ISP deleted.", "success")
     return redirect(url_for("isps.index"))
+
+
+@bp.route("/<int:id>/clone", methods=["POST"])
+def clone(id):
+    i = ISP.query.get_or_404(id)
+    copy = ISP(
+        site_id=i.site_id,
+        name="Copy of " + i.name,
+        type=i.type,
+        asn=i.asn,
+        public_ip_range=None,
+        notes=i.notes,
+    )
+    db.session.add(copy)
+    db.session.commit()
+    flash(f"Cloned '{i.name}'.", "success")
+    return redirect(url_for("isps.index"))
