@@ -30,6 +30,7 @@ def create():
         role=request.form.get("role", "").strip(),
         status=request.form.get("status", "active").strip(),
         public_exposed=bool(request.form.get("public_exposed")),
+        public_label=request.form.get("public_label", "").strip() or None,
         notes=request.form.get("notes", "").strip(),
     )
     db.session.add(v)
@@ -54,6 +55,7 @@ def edit(id):
         v.role          = request.form.get("role", "").strip()
         v.status        = request.form.get("status", "active").strip()
         v.public_exposed = bool(request.form.get("public_exposed"))
+        v.public_label  = request.form.get("public_label", "").strip() or None
         v.notes         = request.form.get("notes", "").strip()
         db.session.commit()
         flash("VM updated.", "success")
@@ -86,6 +88,7 @@ def clone(id):
         role=v.role,
         status=v.status,
         public_exposed=v.public_exposed,
+        public_label=v.public_label,
         notes=v.notes,
     )
     db.session.add(copy)

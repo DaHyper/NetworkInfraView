@@ -25,6 +25,7 @@ def create_app(config_class=Config):
     from app.routes.data_io import bp as data_io_bp
     from app.routes.search import bp as search_bp
     from app.routes.util import bp as util_bp
+    from app.routes.diagram import bp as diagram_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(sites_bp)
@@ -41,8 +42,17 @@ def create_app(config_class=Config):
     app.register_blueprint(data_io_bp)
     app.register_blueprint(search_bp)
     app.register_blueprint(util_bp)
+    app.register_blueprint(diagram_bp)
 
     with app.app_context():
         db.create_all()
+        # Migrate: add columns introduced after initial release
+        from sqlalchemy import inspect as sa_inspect, text
+        inspector = sa_inspect(db.engine)
+        with db.engine.connect() as conn:
+            vm_cols = [c["name"] for c in inspector.get_columns("vms")]
+            if "public_label" not in vm_cols:
+                conn.execute(text("ALTER TABLE vms ADD COLUMN public_label VARCHAR(60)"))
+                conn.commit()
 
     return app

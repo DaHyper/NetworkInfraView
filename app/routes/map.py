@@ -58,12 +58,12 @@ def graph():
         })
         edges.append({
             "data": {
-                "id": f"edge-isp-site-{isp.id}",
-                "source": f"isp-{isp.id}",
-                "target": f"site-{isp.site_id}",
-                "label": "uplink",
-                "color": "#333",
-                "style": "solid",
+                "id": f"edge-site-isp-{isp.id}",
+                "source": f"site-{isp.site_id}",
+                "target": f"isp-{isp.id}",
+                "label": "",
+                "color": "#555",
+                "lineStyle": "solid",
             }
         })
 
@@ -94,7 +94,7 @@ def graph():
                     "target": f"fw-{fw.id}",
                     "label": "",
                     "color": "#555",
-                    "style": "solid",
+                    "lineStyle": "solid",
                 }
             })
 
@@ -127,7 +127,7 @@ def graph():
                     "source": f"fw-{fw.id}",
                     "target": f"hw-{hw.id}",
                     "color": "#555",
-                    "style": "solid",
+                    "lineStyle": "solid",
                 }
             })
 
@@ -181,7 +181,7 @@ def graph():
                     "source": f"hw-{vm.hypervisor.hardware_id}",
                     "target": f"vm-{vm.id}",
                     "color": "#888",
-                    "style": "dashed",
+                    "lineStyle": "dashed",
                 }
             })
         # VM → Network
@@ -192,7 +192,7 @@ def graph():
                     "source": f"vm-{vm.id}",
                     "target": f"net-{vm.network_id}",
                     "color": net_color,
-                    "style": "dashed",
+                    "lineStyle": "dashed",
                 }
             })
 
@@ -238,7 +238,7 @@ def graph():
                     "source": f"client-{cl.id}",
                     "target": f"net-{cl.network_id}",
                     "color": "#aaa",
-                    "style": "dashed",
+                    "lineStyle": "dashed",
                 }
             })
 
@@ -268,7 +268,7 @@ def graph():
                 "target": f"{conn.to_type}-{conn.to_id}",
                 "label": conn.label or "",
                 "color": conn.color,
-                "style": conn.style,
+                "lineStyle": conn.style,
             }
         })
 

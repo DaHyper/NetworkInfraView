@@ -55,9 +55,11 @@ function buildStylesheet() {
         'text-background-opacity': 0.8,
         'text-background-padding': '2px',
         'color': '#555',
+        'line-style': 'solid',
       }
     },
-    { selector: 'edge[style="dashed"]', style: { 'line-style': 'dashed', 'line-dash-pattern': [6, 4] } },
+    // Dashed edges — uses lineStyle data field to avoid Cytoscape style key conflict
+    { selector: 'edge[lineStyle="dashed"]', style: { 'line-style': 'dashed', 'line-dash-pattern': [6, 4] } },
   ];
 
   // Per-type node styles
@@ -97,9 +99,17 @@ function initCytoscape() {
     maxZoom: 5,
   });
 
-  // Click node → detail panel
+  // Click node — if drawing a connection, handle that; otherwise show detail panel
   cy.on('tap', 'node', function(e) {
-    showDetailPanel(e.target.data());
+    const data = e.target.data();
+    if (pendingEdgeSource) {
+      if (data.id !== pendingEdgeSource.id) {
+        openConnectionModal(pendingEdgeSource, data);
+      }
+      cancelConnectionMode();
+      return;
+    }
+    showDetailPanel(data);
   });
 
   // Right-click edge → delete option
@@ -114,9 +124,15 @@ function initCytoscape() {
     }
   });
 
-  // Click background → clear selection
+  // Click background → clear selection / cancel connection mode
   cy.on('tap', function(e) {
-    if (e.target === cy) closeDetailPanel();
+    if (e.target === cy) {
+      if (pendingEdgeSource) {
+        cancelConnectionMode();
+      } else {
+        closeDetailPanel();
+      }
+    }
   });
 
   loadGraph();
@@ -138,53 +154,60 @@ function loadGraph() {
 
 // ── Layout ────────────────────────────────────────────────────────
 function applyLayout() {
-  const layoutName = document.getElementById('layout-select')?.value || 'breadthfirst';
+  const layoutName = document.getElementById('layout-select')?.value || 'cose';
 
-  // Check if any nodes have saved positions (preset)
+  // If nodes have saved positions and user hasn't forced a re-layout, use them
   const hasPositions = cy.nodes().some(n => n.position().x !== 0 || n.position().y !== 0);
 
-  if (layoutName === 'preset' || (hasPositions && layoutName !== 'cose' && layoutName !== 'grid' && layoutName !== 'breadthfirst')) {
+  if (layoutName === 'preset' || (hasPositions && layoutName !== 'cose' && layoutName !== 'grid' && layoutName !== 'breadthfirst' && layoutName !== 'dagre')) {
     cy.layout({ name: 'preset' }).run();
     cy.fit(undefined, 40);
     return;
   }
 
   const layoutConfig = {
+    // Hierarchical top-down — auto-detects roots (nodes with no incoming edges = Sites)
     dagre: {
       name: 'breadthfirst',
       directed: true,
-      spacingFactor: 1.5,
-      padding: 40,
+      spacingFactor: 2.0,
+      padding: 60,
       animate: true,
-      animationDuration: 400,
-      // Sort by type hierarchy
-      roots: cy.nodes('.node-site, .node-isp'),
+      animationDuration: 500,
     },
+    // Hierarchical top-down: Site → ISP → Firewall → Hardware → VM
     breadthfirst: {
       name: 'breadthfirst',
       directed: true,
-      spacingFactor: 1.4,
-      padding: 40,
+      roots: '.node-site',
+      spacingFactor: 2.0,
+      padding: 60,
       animate: true,
       animationDuration: 400,
     },
+    // Force-directed — best for mixed/disconnected graphs (default)
     cose: {
       name: 'cose',
       animate: true,
-      animationDuration: 600,
-      padding: 40,
-      idealEdgeLength: 120,
-      nodeRepulsion: 8000,
+      animationDuration: 700,
+      padding: 60,
+      idealEdgeLength: 160,
+      nodeRepulsion: 18000,
+      gravity: 0.2,
+      numIter: 1500,
+      nodeOverlap: 30,
+      componentSpacing: 80,
     },
     grid: {
       name: 'grid',
-      padding: 30,
+      padding: 40,
       animate: true,
+      avoidOverlapPadding: 20,
     },
     preset: { name: 'preset' },
   };
 
-  cy.layout(layoutConfig[layoutName] || layoutConfig.breadthfirst).run();
+  cy.layout(layoutConfig[layoutName] || layoutConfig.cose).run();
   cy.fit(undefined, 40);
 }
 
@@ -214,7 +237,7 @@ const DETAIL_LABELS = {
   network_name: 'Network',
   vlan_id: 'VLAN ID',
   subnet: 'Subnet',
-  color: null,  // hide
+  color: null,
   storage_type: 'Storage Type',
   capacity_tb: 'Capacity (TB)',
   protocol: 'Protocol',
@@ -273,22 +296,23 @@ function showDetailPanel(data) {
 
 function closeDetailPanel() {
   document.getElementById('detail-panel').classList.remove('open');
-  pendingEdgeSource = null;
+  // Note: does NOT clear pendingEdgeSource — cancelConnectionMode() handles that
 }
 
 // ── Connection drawing ────────────────────────────────────────────
 function startDrawConnection(sourceData) {
   pendingEdgeSource = sourceData;
   closeDetailPanel();
-  cy.nodes().style('border-color', '#f59e0b');
-  cy.one('tap', 'node', function(e) {
-    cy.nodes().style('border-color', null);
-    const target = e.target.data();
-    if (pendingEdgeSource && target.id !== pendingEdgeSource.id) {
-      openConnectionModal(pendingEdgeSource, target);
-    }
-    pendingEdgeSource = null;
-  });
+  // Show banner instead of highlighting every node gold
+  const banner = document.getElementById('conn-banner');
+  banner.querySelector('.conn-banner-label').textContent =
+    `Drawing from "${sourceData.label}" — click the target node`;
+  banner.classList.remove('hidden');
+}
+
+function cancelConnectionMode() {
+  pendingEdgeSource = null;
+  document.getElementById('conn-banner').classList.add('hidden');
 }
 
 function openConnectionModal(source, target) {
@@ -311,6 +335,10 @@ function saveConnection() {
   const src = parseNodeId(srcId);
   const tgt = parseNodeId(tgtId);
 
+  const label    = document.getElementById('conn-label').value;
+  const color    = document.getElementById('conn-color').value;
+  const lineStyle = document.getElementById('conn-style').value;
+
   fetch('/map/api/connections', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -319,9 +347,9 @@ function saveConnection() {
       from_id: src.id,
       to_type: tgt.type,
       to_id: tgt.id,
-      label: document.getElementById('conn-label').value,
-      color: document.getElementById('conn-color').value,
-      style: document.getElementById('conn-style').value,
+      label,
+      color,
+      style: lineStyle,   // server still stores it as "style" in DB column
     })
   })
   .then(r => r.json())
@@ -331,9 +359,9 @@ function saveConnection() {
         id: `conn-${data.id}`,
         source: srcId,
         target: tgtId,
-        label: document.getElementById('conn-label').value,
-        color: document.getElementById('conn-color').value,
-        style: document.getElementById('conn-style').value,
+        label,
+        color,
+        lineStyle,  // use lineStyle so Cytoscape selector [lineStyle="dashed"] works
       }
     });
     modal.classList.add('hidden');
@@ -353,7 +381,7 @@ function saveLayout(btn) {
     body: JSON.stringify(positions),
   }).then(() => {
     btn.textContent = '✓ Saved';
-    setTimeout(() => btn.textContent = '&#128190; Save Positions', 1500);
+    setTimeout(() => { btn.textContent = '💾 Save Positions'; }, 1500);
   });
 }
 
@@ -367,7 +395,6 @@ function exportPNG() {
 }
 
 function exportSVG() {
-  // Cytoscape doesn't have built-in SVG export in core — we embed canvas as SVG wrapper
   const png64 = cy.png({ output: 'base64', scale: 2, bg: '#ffffff' });
   const bb = cy.extent();
   const w = Math.round((bb.x2 - bb.x1) * 2 + 80);
@@ -383,7 +410,6 @@ function exportSVG() {
 }
 
 function exportHTML() {
-  // Export a self-contained HTML with the diagram embedded as PNG
   const png64 = cy.png({ output: 'base64', scale: 2, bg: '#ffffff' });
   const html = `<!DOCTYPE html>
 <html lang="en">

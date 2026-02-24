@@ -174,6 +174,7 @@ class VM(db.Model):
     role = db.Column(db.String(120))
     status = db.Column(db.String(30), default="active")
     public_exposed = db.Column(db.Boolean, default=False)
+    public_label = db.Column(db.String(60))   # e.g. "Cloudflare", "Direct", "VPN"
     notes = db.Column(db.Text)
 
     apps = db.relationship("App", backref="vm", lazy=True, cascade="all, delete-orphan",
@@ -194,6 +195,7 @@ class VM(db.Model):
             "role": self.role,
             "status": self.status,
             "public_exposed": self.public_exposed,
+            "public_label": self.public_label or "",
             "notes": self.notes,
         }
 

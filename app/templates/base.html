@@ -30,6 +30,7 @@
   <div class="nav-section-label">Overview</div>
   <a href="{{ url_for('main.index') }}" class="nav-item {% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
   <a href="{{ url_for('map.view') }}" class="nav-item {% if request.endpoint == 'map.view' %}active{% endif %}">Network Map</a>
+  <a href="{{ url_for('diagram.view') }}" class="nav-item {% if request.blueprint == 'diagram' %}active{% endif %}">Diagram</a>
 
   <div class="nav-section-label">Infrastructure</div>
   <a href="{{ url_for('sites.index') }}" class="nav-item {% if request.blueprint == 'sites' %}active{% endif %}">Sites</a>

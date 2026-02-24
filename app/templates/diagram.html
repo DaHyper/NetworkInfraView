@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+{% block title %}Diagram — NetworkInfraView{% endblock %}
+{% block page_title %}Network Diagram{% endblock %}
+
+{% block topbar_actions %}
+{% if sites %}
+<form method="get" action="{{ url_for('diagram.view') }}" style="display:contents;">
+  <select name="site_id" class="form-control" onchange="this.form.submit()" style="width:180px;">
+    {% for s in sites %}
+    <option value="{{ s.id }}"{{ ' selected' if site and s.id == site.id }}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+</form>
+{% endif %}
+<button class="btn btn-sm" onclick="window.print()">Print / PDF</button>
+<button class="btn btn-sm" onclick="exportDiagram()">Save HTML</button>
+{% endblock %}
+
+{% block content %}
+<div id="diag-page">
+{% if not site %}
+  <div style="text-align:center;padding:60px;color:#888;">
+    No sites found. <a href="{{ url_for('sites.index') }}" style="color:#2563eb;">Add a site</a> to get started.
+  </div>
+{% else %}
+
+<div id="diag-wrap">
+  <svg id="diag-lines"></svg>
+
+  <!-- Site header -->
+  <div class="diag-site-title">
+    <div class="diag-site-name">{{ site.name }}</div>
+    {% if site.location or site.timezone %}
+    <div class="diag-site-loc">{{ site.location or '' }}{% if site.location and site.timezone %} &nbsp;·&nbsp; {% endif %}{{ site.timezone or '' }}</div>
+    {% endif %}
+  </div>
+
+  <!-- ── Row -1: External / Internet layer (clients + cloud services) ── -->
+  {% if clients or external_misc %}
+  <div class="diag-row" id="row-external">
+    {% for cl in clients %}
+    <div class="diag-external-box" id="diag-client-{{ cl.id }}" data-name="{{ cl.name | lower }}">
+      <div class="diag-label-tag">{{ cl.device_type | title }}</div>
+      <div class="diag-box-name">{{ cl.name }}</div>
+      {% if cl.owner %}<div class="diag-box-sub">{{ cl.owner }}</div>{% endif %}
+      {% if cl.ip_address %}<div class="diag-box-sub mono">{{ cl.ip_address }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    {% for ms in external_misc %}
+    <div class="diag-external-box" id="diag-misc-{{ ms.id }}" data-name="{{ ms.name | lower }}">
+      {% if ms.category %}<div class="diag-label-tag">{{ ms.category }}</div>{% endif %}
+      <div class="diag-box-name">{{ ms.name }}</div>
+      {% if ms.description %}<div class="diag-box-sub">{{ ms.description }}</div>{% endif %}
+      {% if ms.ip_address %}<div class="diag-box-sub mono">{{ ms.ip_address }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Row 0: ISPs ── -->
+  {% if isps %}
+  <div class="diag-row" id="row-isps">
+    {% for isp in isps %}
+    <div class="diag-isp-box" id="diag-isp-{{ isp.id }}">
+      <div class="diag-label-tag">ISP</div>
+      <div class="diag-box-name">{{ isp.name }}</div>
+      {% if isp.type %}<div class="diag-box-sub">{{ isp.type | title }}</div>{% endif %}
+      {% if isp.asn %}<div class="diag-box-sub">AS{{ isp.asn }}</div>{% endif %}
+      {% if isp.public_ip_range %}<div class="diag-box-sub mono">{{ isp.public_ip_range }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Row 1: Firewalls ── -->
+  {% if firewalls %}
+  <div class="diag-row" id="row-fws">
+    {% for fw in firewalls %}
+    <div class="diag-fw-box" id="diag-fw-{{ fw.id }}" data-name="{{ fw.name | lower }}">
+      <div class="diag-fw-title">Firewall &mdash; {{ fw.name }}</div>
+      {% if fw.model %}<div class="diag-fw-row">{{ fw.model }}</div>{% endif %}
+      {% if fw.public_ip %}<div class="diag-fw-row mono">WAN: {{ fw.public_ip }}</div>{% endif %}
+      {% if fw.management_ip %}<div class="diag-fw-row mono">LAN: {{ fw.management_ip }}</div>{% endif %}
+      <div class="diag-fw-row" style="color:{% if fw.status == 'active' %}#16a34a{% elif fw.status == 'offline' %}#dc2626{% else %}#d97706{% endif %};">&#9679; {{ fw.status }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Row 2: Hardware segments grouped by cluster ── -->
+  {% if hardware or storage_list %}
+  <div class="diag-row" id="row-hw">
+
+    {% for cluster_name, cluster_hw in hw_clusters.items() %}
+    <div class="diag-cluster{% if cluster_name != '_ungrouped' %} diag-cluster-named{% endif %}" id="diag-cluster-{{ loop.index }}">
+      {% if cluster_name != '_ungrouped' %}
+      <div class="diag-cluster-label">{{ cluster_name }}</div>
+      {% endif %}
+      <div class="diag-cluster-segs">
+        {% for hw in cluster_hw %}
+        <div class="diag-seg" id="diag-hw-{{ hw.id }}" data-name="{{ hw.name | lower }}">
+          <div class="diag-seg-title">
+            {{ hw.name }}
+            {% if hw.make_model %}<div class="diag-seg-sub">{{ hw.make_model }}</div>{% endif %}
+            {% if hw.hypervisor %}
+            <div class="diag-seg-sub">
+              {{ hw.hypervisor.hypervisor_type | title }}{% if hw.hypervisor.cluster_name %} &bull; {{ hw.hypervisor.cluster_name }}{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="diag-seg-body">
+            {% if hw.ip_mgmt %}
+            <div class="diag-mgmt-ip">Mgmt: <span class="mono">{{ hw.ip_mgmt }}</span></div>
+            {% endif %}
+
+            {% if hw.id in hw_vms and hw_vms[hw.id] %}
+              {% for group in hw_vms[hw.id] %}
+                {% for vm in group.vms %}
+                <div class="diag-vm-row" id="diag-vm-{{ vm.id }}" data-name="{{ vm.name | lower }}" style="border-left: 3px solid {{ group.color }};">
+                  <div class="diag-vm-dot" style="background:{{ group.color }};"></div>
+                  <span class="diag-vm-name">{{ vm.name }}</span>
+                  {% if vm.ip_address %}<span class="diag-vm-ip mono">{{ vm.ip_address }}</span>{% endif %}
+                  {% if vm.public_exposed %}
+                  <span class="diag-badge-pub">{{ vm.public_label or 'Public' }}</span>
+                  {% endif %}
+                  {% if vm.status != 'active' %}<span class="diag-badge-status-{{ vm.status }}">{{ vm.status }}</span>{% endif %}
+                  <span class="diag-vlan-pill" style="color:{{ group.color }};border-color:{{ group.color }}55;background:{{ group.color }}18;">{% if group.vlan_id %}VLAN {{ group.vlan_id }}{% else %}{{ group.name[:10] }}{% endif %}</span>
+                </div>
+                {% endfor %}
+              {% endfor %}
+
+            {% else %}
+              <div class="diag-hw-role">{{ hw.role or (hw.device_type | title) }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% for st in storage_list %}
+    <div class="diag-storage-box" id="diag-storage-{{ st.id }}" data-name="{{ st.name | lower }}">
+      <div class="diag-label-tag">{{ st.type | upper }}</div>
+      <div class="diag-box-name">{{ st.name }}</div>
+      {% if st.make_model %}<div class="diag-box-sub">{{ st.make_model }}</div>{% endif %}
+      {% if st.capacity_tb %}<div class="diag-box-sub">{{ st.capacity_tb }} TB</div>{% endif %}
+      {% if st.ip_address %}<div class="diag-box-sub mono">{{ st.ip_address }}</div>{% endif %}
+      {% if st.protocol %}<div class="diag-box-sub">{{ st.protocol }}</div>{% endif %}
+    </div>
+    {% endfor %}
+
+  </div>
+  {% endif %}
+
+  <!-- ── Row 3: Internal Misc ── -->
+  {% if misc_list %}
+  <div class="diag-row" id="row-misc">
+    {% for ms in misc_list %}
+    <div class="diag-misc-box" id="diag-misc-{{ ms.id }}" data-name="{{ ms.name | lower }}">
+      {% if ms.category %}<div class="diag-label-tag">{{ ms.category }}</div>{% endif %}
+      <div class="diag-box-name">{{ ms.name }}</div>
+      {% if ms.description %}<div class="diag-box-sub">{{ ms.description }}</div>{% endif %}
+      {% if ms.ip_address %}<div class="diag-box-sub mono">{{ ms.ip_address }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Networks / VLAN legend -->
+  {% if networks %}
+  <div class="diag-legend">
+    <span style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.5px;align-self:center;">VLANs:</span>
+    {% for net in networks %}
+    <div class="diag-legend-item">
+      <span class="diag-legend-dot" style="border-color:{{ net.color }};background:{{ net.color }}20;"></span>
+      {% if net.vlan_id %}VLAN {{ net.vlan_id }} — {% endif %}{{ net.name }}
+      {% if net.subnet %}<span class="diag-legend-sub">{{ net.subnet }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div><!-- end #diag-wrap -->
+{% endif %}
+</div><!-- end #diag-page -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if site %}
+window.addEventListener('load', () => {
+  const wrap = document.getElementById('diag-wrap');
+  if (!wrap) return;
+  const svg = document.getElementById('diag-lines');
+  const ns  = 'http://www.w3.org/2000/svg';
+
+  // ── Helpers ───────────────────────────────────────────────────
+
+  function BB(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const wr = wrap.getBoundingClientRect();
+    const r  = el.getBoundingClientRect();
+    return {
+      cx:    (r.left + r.right)  / 2 - wr.left,
+      cy:    (r.top  + r.bottom) / 2 - wr.top,
+      top:   r.top    - wr.top,
+      bot:   r.bottom - wr.top,
+      left:  r.left   - wr.left,
+      right: r.right  - wr.left,
+    };
+  }
+
+  function dot(x, y, color) {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', y);
+    c.setAttribute('r', '3'); c.setAttribute('fill', color || '#555');
+    svg.appendChild(c);
+  }
+
+  function seg(x1, y1, x2, y2, color, dash) {
+    if (Math.abs(x1 - x2) < 0.5 && Math.abs(y1 - y2) < 0.5) return;
+    const l = document.createElementNS(ns, 'line');
+    l.setAttribute('x1', x1); l.setAttribute('y1', y1);
+    l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    l.setAttribute('stroke', color || '#555');
+    l.setAttribute('stroke-width', '1.5');
+    if (dash) l.setAttribute('stroke-dasharray', '6 4');
+    svg.appendChild(l);
+  }
+
+  function lbl(x, y, text, color) {
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('font-size', '8');
+    t.setAttribute('fill', color || '#555');
+    t.setAttribute('font-family', 'Arial');
+    t.textContent = text;
+    svg.appendChild(t);
+  }
+
+  // ── Simple bus: sources → trunk → targets (uniform color) ────
+  function bus(fromIds, toIds, color, dash) {
+    const froms = fromIds.map(BB).filter(Boolean);
+    const tos   = toIds.map(BB).filter(Boolean);
+    if (!froms.length || !tos.length) return;
+    const maxBot = Math.max(...froms.map(f => f.bot));
+    const minTop = Math.min(...tos.map(t => t.top));
+    const trunkY = (maxBot + minTop) / 2;
+    froms.forEach(f => { seg(f.cx, f.bot, f.cx, trunkY, color, dash); dot(f.cx, f.bot, color); });
+    const allCx = [...froms.map(f => f.cx), ...tos.map(t => t.cx)];
+    const x1 = Math.min(...allCx), x2 = Math.max(...allCx);
+    if (x2 - x1 > 2) seg(x1, trunkY, x2, trunkY, color, dash);
+    tos.forEach(t => { seg(t.cx, trunkY, t.cx, t.top, color, dash); dot(t.cx, t.top, color); });
+  }
+
+  // ── Bus with per-VLAN colored drops and labels ────────────────
+  // hwVlans = { 'diag-hw-N': [{color, label}, ...], ... }
+  function busVlan(fromIds, hwVlans, defaultColor) {
+    const froms = fromIds.map(BB).filter(Boolean);
+    if (!froms.length) return;
+    const toEntries = Object.entries(hwVlans)
+      .map(([id, vlans]) => ({ id, bb: BB(id), vlans }))
+      .filter(x => x.bb);
+    if (!toEntries.length) return;
+
+    const maxBot = Math.max(...froms.map(f => f.bot));
+    const minTop = Math.min(...toEntries.map(t => t.bb.top));
+    const trunkY = (maxBot + minTop) / 2;
+
+    froms.forEach(f => {
+      seg(f.cx, f.bot, f.cx, trunkY, defaultColor, false);
+      dot(f.cx, f.bot, defaultColor);
+    });
+
+    const allCx = [...froms.map(f => f.cx), ...toEntries.map(t => t.bb.cx)];
+    const x1 = Math.min(...allCx), x2 = Math.max(...allCx);
+    if (x2 - x1 > 2) seg(x1, trunkY, x2, trunkY, defaultColor, false);
+
+    toEntries.forEach(({ bb: t, vlans }) => {
+      if (!vlans.length) {
+        seg(t.cx, trunkY, t.cx, t.top, defaultColor, false);
+        dot(t.cx, t.top, defaultColor);
+        return;
+      }
+      const n       = vlans.length;
+      const spacing = 10;
+      const totalW  = (n - 1) * spacing;
+      const dropH   = t.top - trunkY;
+      vlans.forEach((vlan, i) => {
+        const x      = t.cx - totalW / 2 + i * spacing;
+        // Stagger labels vertically so they don't overlap each other
+        const labelY = trunkY + dropH * (0.15 + i * 0.12);
+        seg(x, trunkY, x, t.top, vlan.color, false);
+        dot(x, t.top, vlan.color);
+        lbl(x + 2, labelY, vlan.label, vlan.color);
+      });
+    });
+  }
+
+  // ── Custom connection: routed elbow between two specific nodes ─
+  function connect(fromId, toId, color, dash, label) {
+    const f = BB(fromId), t = BB(toId);
+    if (!f || !t) return;
+
+    const gap = t.top - f.bot;
+
+    if (gap > 4) {
+      const midY = f.bot + gap / 2;
+      if (Math.abs(f.cx - t.cx) < 4) {
+        seg(f.cx, f.bot, t.cx, t.top, color, dash);
+      } else {
+        const path = document.createElementNS(ns, 'path');
+        path.setAttribute('d', `M${f.cx} ${f.bot} L${f.cx} ${midY} L${t.cx} ${midY} L${t.cx} ${t.top}`);
+        path.setAttribute('stroke', color || '#555');
+        path.setAttribute('stroke-width', '1.5');
+        path.setAttribute('fill', 'none');
+        if (dash) path.setAttribute('stroke-dasharray', '6 4');
+        svg.appendChild(path);
+      }
+      dot(f.cx, f.bot, color); dot(t.cx, t.top, color);
+    } else if (f.top - t.bot > 4) {
+      connect(toId, fromId, color, dash, label);
+      return;
+    } else {
+      if (f.right <= t.left) {
+        seg(f.right, f.cy, t.left, t.cy, color, dash);
+        dot(f.right, f.cy, color); dot(t.left, t.cy, color);
+      } else if (t.right <= f.left) {
+        seg(t.right, t.cy, f.left, f.cy, color, dash);
+        dot(t.right, t.cy, color); dot(f.left, f.cy, color);
+      }
+    }
+
+    if (label) {
+      const lx = (f.cx + t.cx) / 2;
+      const ly = (f.bot + t.top) / 2;
+      const txt = document.createElementNS(ns, 'text');
+      txt.setAttribute('x', lx + 4); txt.setAttribute('y', ly - 3);
+      txt.setAttribute('font-size', '9'); txt.setAttribute('fill', color || '#555');
+      txt.setAttribute('font-family', 'Arial');
+      txt.textContent = label;
+      svg.appendChild(txt);
+    }
+  }
+
+  // ── Draw topology connections ──────────────────────────────────
+
+  const ispIds = [{% for isp in isps %}'diag-isp-{{ isp.id }}',{% endfor %}];
+  const fwIds  = [{% for fw in firewalls %}'diag-fw-{{ fw.id }}',{% endfor %}];
+
+  // VLAN data per hardware target
+  const hwVlans = {
+    {% for hw in hardware %}'diag-hw-{{ hw.id }}': [{% if hw.id in hw_vms %}{% for g in hw_vms[hw.id] %}{% if g.vlan_id %}{ color: '{{ g.color }}', label: 'VLAN {{ g.vlan_id }}' },{% endif %}{% endfor %}{% endif %}],
+    {% endfor %}{% for st in storage_list %}'diag-storage-{{ st.id }}': [],
+    {% endfor %}
+  };
+
+  // ISP → Firewall (gray trunk)
+  if (ispIds.length && fwIds.length) {
+    bus(ispIds, fwIds, '#444', false);
+  }
+
+  // FW → Hardware with per-VLAN colored drops + labels
+  const hwTargets = Object.keys(hwVlans);
+  if (fwIds.length && hwTargets.length) {
+    busVlan(fwIds, hwVlans, '#555');
+  } else if (ispIds.length && hwTargets.length) {
+    busVlan(ispIds, hwVlans, '#555');
+  }
+
+  // ── Custom connections from DB ─────────────────────────────────
+  {% for conn in connections %}
+  connect(
+    'diag-{{ conn.from_type }}-{{ conn.from_id }}',
+    'diag-{{ conn.to_type }}-{{ conn.to_id }}',
+    '{{ conn.color }}',
+    {{ 'true' if conn.style == 'dashed' else 'false' }},
+    {{ ('"' + conn.label + '"') if conn.label else 'null' }}
+  );
+  {% endfor %}
+
+  // ── Auto-connections (name-based detection) ────────────────────
+  // Build id → lowercase-name map from data-name attributes
+  const _named = {};
+  document.querySelectorAll('[data-name]').forEach(el => {
+    if (el.id) _named[el.id] = (el.dataset.name || '').toLowerCase();
+  });
+
+  // Client devices → VPN target (dashed purple)
+  const _vpnIds = Object.keys(_named).filter(id =>
+    !id.startsWith('diag-client-') &&
+    (_named[id].includes('vpn') || _named[id].includes('wireguard') || _named[id].includes('openvpn'))
+  );
+  const _clientIds = [{% for cl in clients %}'diag-client-{{ cl.id }}',{% endfor %}];
+  if (_vpnIds.length && _clientIds.length) {
+    _clientIds.forEach(cid => connect(cid, _vpnIds[0], '#818cf8', true, null));
+  }
+
+  // Wazuh FW → Logging / SIEM server (orange)
+  const _wazuhFwIds = Object.keys(_named).filter(id =>
+    id.startsWith('diag-fw-') && _named[id].includes('wazuh')
+  );
+  const _logIds = Object.keys(_named).filter(id =>
+    !id.startsWith('diag-fw-') && !id.startsWith('diag-client-') &&
+    (_named[id].includes('log') || _named[id].includes('siem'))
+  );
+  if (_wazuhFwIds.length && _logIds.length) {
+    _wazuhFwIds.forEach(fwId => connect(fwId, _logIds[0], '#f97316', false, 'Events'));
+  }
+
+  // Resize SVG to match rendered content
+  svg.setAttribute('width',  wrap.scrollWidth  + 20);
+  svg.setAttribute('height', wrap.scrollHeight + 40);
+});
+{% endif %}
+
+// ── Export as self-contained HTML ─────────────────────────────────
+function exportDiagram() {
+  let css = '';
+  try {
+    Array.from(document.styleSheets).forEach(sheet => {
+      try { Array.from(sheet.cssRules).forEach(r => { css += r.cssText + '\n'; }); }
+      catch(e) {}
+    });
+  } catch(e) {}
+
+  const page = document.getElementById('diag-page');
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Network Diagram — {{ site.name if site else 'Export' }}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background:#fff; font-family:Arial,sans-serif; font-size:11px; color:#111; padding:24px; }
+${css}
+#diag-page { background:#fff !important; color:#111 !important; padding:24px; }
+#sidebar,#modal-overlay,.topbar { display:none !important; }
+</style>
+</head>
+<body>${page.outerHTML}
+<script>
+window.addEventListener('load',()=>{
+  const wrap=document.getElementById('diag-wrap');
+  if(!wrap)return;
+  const svg=document.getElementById('diag-lines');
+  const ns='http://www.w3.org/2000/svg';
+  function BB(id){const el=document.getElementById(id);if(!el)return null;const wr=wrap.getBoundingClientRect();const r=el.getBoundingClientRect();return{cx:(r.left+r.right)/2-wr.left,cy:(r.top+r.bottom)/2-wr.top,top:r.top-wr.top,bot:r.bottom-wr.top,left:r.left-wr.left,right:r.right-wr.left};}
+  function dot(x,y,c){const e=document.createElementNS(ns,'circle');e.setAttribute('cx',x);e.setAttribute('cy',y);e.setAttribute('r','3');e.setAttribute('fill',c||'#555');svg.appendChild(e);}
+  function seg(x1,y1,x2,y2,c,d){if(Math.abs(x1-x2)<0.5&&Math.abs(y1-y2)<0.5)return;const l=document.createElementNS(ns,'line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',c||'#555');l.setAttribute('stroke-width','1.5');if(d)l.setAttribute('stroke-dasharray','6 4');svg.appendChild(l);}
+  function lbl(x,y,txt,c){const t=document.createElementNS(ns,'text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('font-size','8');t.setAttribute('fill',c||'#555');t.setAttribute('font-family','Arial');t.textContent=txt;svg.appendChild(t);}
+  function bus(fi,ti,c,d){const f=fi.map(BB).filter(Boolean),t=ti.map(BB).filter(Boolean);if(!f.length||!t.length)return;const mB=Math.max(...f.map(x=>x.bot)),mT=Math.min(...t.map(x=>x.top)),tY=(mB+mT)/2;f.forEach(x=>{seg(x.cx,x.bot,x.cx,tY,c,d);dot(x.cx,x.bot,c);});const xs=[...f.map(x=>x.cx),...t.map(x=>x.cx)],x1=Math.min(...xs),x2=Math.max(...xs);if(x2-x1>2)seg(x1,tY,x2,tY,c,d);t.forEach(x=>{seg(x.cx,tY,x.cx,x.top,c,d);dot(x.cx,x.top,c);});}
+  function busVlan(fi,hv,dc){const f=fi.map(BB).filter(Boolean);if(!f.length)return;const te=Object.entries(hv).map(([id,vl])=>({id,bb:BB(id),vl})).filter(x=>x.bb);if(!te.length)return;const mB=Math.max(...f.map(x=>x.bot)),mT=Math.min(...te.map(t=>t.bb.top)),tY=(mB+mT)/2;f.forEach(x=>{seg(x.cx,x.bot,x.cx,tY,dc,false);dot(x.cx,x.bot,dc);});const xs=[...f.map(x=>x.cx),...te.map(t=>t.bb.cx)],x1=Math.min(...xs),x2=Math.max(...xs);if(x2-x1>2)seg(x1,tY,x2,tY,dc,false);te.forEach(({bb:t,vl})=>{if(!vl.length){seg(t.cx,tY,t.cx,t.top,dc,false);dot(t.cx,t.top,dc);return;}const n=vl.length,sp=10,tw=(n-1)*sp,dH=t.top-tY;vl.forEach((v,i)=>{const x=t.cx-tw/2+i*sp,lY=tY+dH*(0.15+i*0.12);seg(x,tY,x,t.top,v.color,false);dot(x,t.top,v.color);lbl(x+2,lY,v.label,v.color);});});}
+  function connect(a,b,c,d,el){const f=BB(a),t=BB(b);if(!f||!t)return;const gap=t.top-f.bot;if(gap>4){const mY=f.bot+gap/2;if(Math.abs(f.cx-t.cx)<4){seg(f.cx,f.bot,t.cx,t.top,c,d);}else{const p=document.createElementNS(ns,'path');p.setAttribute('d',\`M\${f.cx} \${f.bot} L\${f.cx} \${mY} L\${t.cx} \${mY} L\${t.cx} \${t.top}\`);p.setAttribute('stroke',c||'#555');p.setAttribute('stroke-width','1.5');p.setAttribute('fill','none');if(d)p.setAttribute('stroke-dasharray','6 4');svg.appendChild(p);}dot(f.cx,f.bot,c);dot(t.cx,t.top,c);}else if(f.top-t.bot>4){connect(b,a,c,d,el);}else{if(f.right<=t.left){seg(f.right,f.cy,t.left,t.cy,c,d);dot(f.right,f.cy,c);dot(t.left,t.cy,c);}else if(t.right<=f.left){seg(t.right,t.cy,f.left,f.cy,c,d);dot(t.right,t.cy,c);dot(f.left,f.cy,c);}}}
+  bus([{% for isp in isps %}'diag-isp-{{ isp.id }}',{% endfor %}],[{% for fw in firewalls %}'diag-fw-{{ fw.id }}',{% endfor %}],'#444',false);
+  const hv={ {% for hw in hardware %}'diag-hw-{{ hw.id }}':[{% if hw.id in hw_vms %}{% for g in hw_vms[hw.id] %}{% if g.vlan_id %}{color:'{{ g.color }}',label:'VLAN {{ g.vlan_id }}'},{% endif %}{% endfor %}{% endif %}],{% endfor %}{% for st in storage_list %}'diag-storage-{{ st.id }}':[],{% endfor %} };
+  const fwl=[{% for fw in firewalls %}'diag-fw-{{ fw.id }}',{% endfor %}];
+  const isl=[{% for isp in isps %}'diag-isp-{{ isp.id }}',{% endfor %}];
+  const hwt=Object.keys(hv);
+  if(fwl.length&&hwt.length)busVlan(fwl,hv,'#555');
+  else if(isl.length&&hwt.length)busVlan(isl,hv,'#555');
+  {% for conn in connections %}connect('diag-{{ conn.from_type }}-{{ conn.from_id }}','diag-{{ conn.to_type }}-{{ conn.to_id }}','{{ conn.color }}',{{ 'true' if conn.style == 'dashed' else 'false' }},{{ ('"'+conn.label+'"') if conn.label else 'null' }});{% endfor %}
+  const _n={};document.querySelectorAll('[data-name]').forEach(e=>{if(e.id)_n[e.id]=(e.dataset.name||'').toLowerCase();});
+  const _vi=Object.keys(_n).filter(id=>!id.startsWith('diag-client-')&&(_n[id].includes('vpn')||_n[id].includes('wireguard')||_n[id].includes('openvpn')));
+  const _ci=[{% for cl in clients %}'diag-client-{{ cl.id }}',{% endfor %}];
+  if(_vi.length&&_ci.length)_ci.forEach(c=>connect(c,_vi[0],'#818cf8',true,null));
+  const _wf=Object.keys(_n).filter(id=>id.startsWith('diag-fw-')&&_n[id].includes('wazuh'));
+  const _li=Object.keys(_n).filter(id=>!id.startsWith('diag-fw-')&&!id.startsWith('diag-client-')&&(_n[id].includes('log')||_n[id].includes('siem')));
+  if(_wf.length&&_li.length)_wf.forEach(f=>connect(f,_li[0],'#f97316',false,'Events'));
+  svg.setAttribute('width',wrap.scrollWidth+20);svg.setAttribute('height',wrap.scrollHeight+40);
+});
+<\/script>
+</body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'network-diagram-{{ (site.name | lower | replace(" ", "-")) if site else "export" }}.html';
+  a.click();
+}
+</script>
+{% endblock %}

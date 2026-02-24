@@ -15,9 +15,9 @@
     {% endfor %}
   </select>
   <select id="layout-select" onchange="applyLayout()">
-    <option value="dagre">Hierarchical</option>
-    <option value="breadthfirst">Breadth-first</option>
     <option value="cose">Force-directed</option>
+    <option value="dagre">Hierarchical</option>
+    <option value="breadthfirst" selected>Top-down</option>
     <option value="grid">Grid</option>
     <option value="preset">Saved positions</option>
   </select>
@@ -35,6 +35,12 @@
 {% endblock %}
 
 {% block content %}
+<!-- Connection drawing mode banner -->
+<div id="conn-banner" class="conn-banner hidden">
+  <span class="conn-banner-label"></span>
+  <button class="btn btn-sm" onclick="cancelConnectionMode()">Cancel</button>
+</div>
+
 <div id="cy-container"></div>
 
 <!-- Node detail panel -->
